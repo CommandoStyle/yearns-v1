@@ -32,7 +32,7 @@ const MODELS = {
   // Claude handles the literary intelligence layer (tiers 1–2).
   // Best-in-class for: emotional interiority, prose quality,
   // character voice, sensory specificity, narrative pacing.
-  CLAUDE: 'claude-sonnet-4-20250514',
+  CLAUDE: 'claude-sonnet-4-6',
 
   // Llama 3.1 70B via Together.ai — explicit tier (level 3).
   // Good balance of quality and permissiveness. Instruction-following

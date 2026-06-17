@@ -25,7 +25,7 @@ Think: Tom Ford perfume ad aesthetic, Playfair Display typography, deep plum pal
 | Framework | Next.js 14 App Router | SSR for marketing, API routes, edge runtime |
 | Hosting | Vercel | Zero-config, edge network, SSE support |
 | Database + Auth | Supabase | Postgres + RLS + Auth + Storage in one |
-| AI | Anthropic Claude claude-sonnet-4-20250514 | Best literary quality, streaming |
+| AI | Anthropic Claude claude-sonnet-4-6 | Best literary quality, streaming |
 | Payments (primary) | Stripe | Subscriptions, webhooks |
 | Payments (backup) | CCBill | Adult content processor — always set up in parallel |
 | Age verification | Veriff | UK OSA compliant, webhook-based, GDPR safe |
