@@ -41,9 +41,8 @@ export const viewport: Viewport = {
   // Prevent double-tap zoom on the reading controls
   maximumScale:     1,
   userScalable:     false,
-  themeColor:       '#2D0A3E',
-  // Keep status bar dark over plum background in standalone PWA mode
-  colorScheme:      'dark',
+  themeColor:       '#ffffff',
+  colorScheme:      'light',
 }
 
 export default function RootLayout({

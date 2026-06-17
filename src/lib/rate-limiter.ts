@@ -32,16 +32,21 @@ export async function checkRateLimit(
   userId: string,
   tier: 'free' | 'pro',
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
-  const rl = getRateLimiter()
-  const key = `${tier}:${userId}`
+  // Fail-open if Upstash isn't configured (e.g. dev/staging without Redis)
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return { success: true, remaining: 99, reset: 0 }
+  }
 
-  // Pro: 10 requests/hour. Free: 3 requests/hour (monthly limit enforced by DB)
-  const limit = tier === 'pro' ? 10 : 3
-  const result = await rl.limit(key, { rate: limit })
-
-  return {
-    success: result.success,
-    remaining: result.remaining,
-    reset: result.reset,
+  try {
+    const rl = getRateLimiter()
+    const key = `${tier}:${userId}`
+    // Pro: 10 requests/hour. Free: 3 requests/hour (monthly limit enforced by DB)
+    const limit = tier === 'pro' ? 10 : 3
+    const result = await rl.limit(key, { rate: limit })
+    return { success: result.success, remaining: result.remaining, reset: result.reset }
+  } catch (err) {
+    // Redis unavailable — fail-open and log, don't block the user
+    console.error('[rate-limiter] Redis error, failing open:', err)
+    return { success: true, remaining: 99, reset: 0 }
   }
 }
