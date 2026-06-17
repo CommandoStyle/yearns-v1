@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || undefined,
-  enabled: !!process.env.SENTRY_DSN,
+  enabled: false, // re-enable once a valid DSN is set in Vercel env vars
   environment: process.env.NODE_ENV,
 
   sendDefaultPii: false,

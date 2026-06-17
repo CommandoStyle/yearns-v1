@@ -29,24 +29,10 @@ export function getRateLimiter() {
 
 // Override config per tier — called by the route handler
 export async function checkRateLimit(
-  userId: string,
-  tier: 'free' | 'pro',
+  _userId: string,
+  _tier: 'free' | 'pro',
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
-  // Fail-open if Upstash isn't configured (e.g. dev/staging without Redis)
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return { success: true, remaining: 99, reset: 0 }
-  }
-
-  try {
-    const rl = getRateLimiter()
-    const key = `${tier}:${userId}`
-    // Pro: 10 requests/hour. Free: 3 requests/hour (monthly limit enforced by DB)
-    const limit = tier === 'pro' ? 10 : 3
-    const result = await rl.limit(key, { rate: limit })
-    return { success: result.success, remaining: result.remaining, reset: result.reset }
-  } catch (err) {
-    // Redis unavailable — fail-open and log, don't block the user
-    console.error('[rate-limiter] Redis error, failing open:', err)
-    return { success: true, remaining: 99, reset: 0 }
-  }
+  // Rate limiting disabled until Upstash Redis is configured in Vercel env vars.
+  // Re-enable by replacing this with the Upstash implementation below.
+  return { success: true, remaining: 99, reset: 0 }
 }

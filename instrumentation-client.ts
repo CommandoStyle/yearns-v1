@@ -4,7 +4,7 @@ export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN || undefined,
-  enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+  enabled: false, // re-enable once a valid DSN is set in Vercel env vars
   environment: process.env.NODE_ENV,
 
   // ── Privacy / PII ──────────────────────────────────────────────────────────
