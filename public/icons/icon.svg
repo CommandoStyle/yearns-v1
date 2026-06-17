@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: yearns-plum with rounded corners matching iOS/Android mask -->
+  <rect width="512" height="512" rx="96" fill="#2D0A3E"/>
+  <!--
+    Geometric Y letterform — all paths, no embedded fonts.
+    Left arm + vertical stem: one continuous polygon.
+    Right arm: separate polygon.
+    Both in yearns-gold (#C9A96E).
+
+    Coordinates:
+      Arms are 42px wide, centred at x=256.
+      V opens from y=96 to junction at y=282, then stem to y=430.
+      Left outer: x=119, right outer: x=393.
+  -->
+  <!-- Left arm + stem -->
+  <polygon points="161,96 277,282 277,430 235,430 235,282 119,96" fill="#C9A96E"/>
+  <!-- Right arm -->
+  <polygon points="351,96 393,96 277,282 235,282" fill="#C9A96E"/>
+</svg>
