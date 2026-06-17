@@ -102,8 +102,8 @@ export default function VerifyAgePage() {
 
         {/* Brand */}
         <div className="space-y-1">
-          <h1 className="font-serif text-3xl text-yearns-cream tracking-tight">Yearns</h1>
-          <p className="text-yearns-gold/60 text-xs tracking-widest uppercase">
+          <h1 className="font-serif text-3xl text-gray-900 tracking-tight">Yearns</h1>
+          <p className="text-gray-600/60 text-xs tracking-widest uppercase">
             Age verification
           </p>
         </div>
@@ -112,8 +112,8 @@ export default function VerifyAgePage() {
         {stage === 'idle' && (
           <>
             <div className="space-y-4">
-              <p className="font-serif text-yearns-cream/80 text-xl">One quick step</p>
-              <p className="text-yearns-cream/45 text-sm leading-relaxed">
+              <p className="font-serif text-gray-900/80 text-xl">One quick step</p>
+              <p className="text-gray-900/45 text-sm leading-relaxed">
                 To comply with UK online safety regulations, we need to confirm you're
                 18 or older before you can read. This takes about a minute. Your details
                 are handled securely by Veriff, a specialist age verification provider.
@@ -122,7 +122,7 @@ export default function VerifyAgePage() {
             <button
               onClick={startVerification}
               disabled={!session}
-              className="w-full py-4 border border-yearns-gold/50 text-yearns-gold font-serif text-base tracking-wide hover:bg-yearns-gold/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-4 border border-gray-600/50 text-gray-600 font-serif text-base tracking-wide hover:bg-gray-600/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Begin verification
             </button>
@@ -131,7 +131,7 @@ export default function VerifyAgePage() {
 
         {/* Starting / redirecting */}
         {(stage === 'starting' || stage === 'redirecting') && (
-          <p className="text-yearns-cream/45 text-sm animate-pulse">
+          <p className="text-gray-900/45 text-sm animate-pulse">
             {stage === 'starting' ? 'Starting…' : 'Opening Veriff…'}
           </p>
         )}
@@ -139,8 +139,8 @@ export default function VerifyAgePage() {
         {/* Checking */}
         {stage === 'checking' && (
           <div className="space-y-5">
-            <div className="mx-auto w-7 h-7 rounded-full border border-yearns-gold/25 border-t-yearns-gold/75 animate-spin" />
-            <p className="text-yearns-cream/45 text-sm">
+            <div className="mx-auto w-7 h-7 rounded-full border border-gray-600/25 border-t-gray-600/75 animate-spin" />
+            <p className="text-gray-900/45 text-sm">
               Confirming your verification…
             </p>
           </div>
@@ -149,21 +149,21 @@ export default function VerifyAgePage() {
         {/* Approved */}
         {stage === 'approved' && (
           <div className="space-y-3">
-            <p className="font-serif text-yearns-cream/90 text-xl">Verified.</p>
-            <p className="text-yearns-cream/40 text-sm">Taking you through now…</p>
+            <p className="font-serif text-gray-900/90 text-xl">Verified.</p>
+            <p className="text-gray-900/40 text-sm">Taking you through now…</p>
           </div>
         )}
 
         {/* Timeout */}
         {stage === 'timeout' && (
           <div className="space-y-7">
-            <p className="text-yearns-cream/50 text-sm leading-relaxed">
+            <p className="text-gray-900/50 text-sm leading-relaxed">
               Your verification is still being processed. This can take a few
               minutes — come back shortly.
             </p>
             <button
               onClick={() => { setStage('checking'); checkVerified(0) }}
-              className="w-full py-3 border border-yearns-cream/15 text-yearns-cream/45 text-xs tracking-widest uppercase hover:border-yearns-cream/30 hover:text-yearns-cream/65 transition-all duration-200"
+              className="w-full py-3 border border-gray-900/15 text-gray-900/45 text-xs tracking-widest uppercase hover:border-gray-900/30 hover:text-gray-900/65 transition-all duration-200"
             >
               Check again
             </button>
@@ -173,12 +173,12 @@ export default function VerifyAgePage() {
         {/* Failed */}
         {stage === 'failed' && (
           <div className="space-y-7">
-            <p className="text-yearns-cream/45 text-sm leading-relaxed">
+            <p className="text-gray-900/45 text-sm leading-relaxed">
               We couldn't start your verification. Please try again.
             </p>
             <button
               onClick={() => setStage('idle')}
-              className="w-full py-3 border border-yearns-gold/30 text-yearns-gold/65 text-xs tracking-widest uppercase hover:border-yearns-gold/55 hover:text-yearns-gold transition-all duration-200"
+              className="w-full py-3 border border-gray-600/30 text-gray-600/65 text-xs tracking-widest uppercase hover:border-gray-600/55 hover:text-gray-600 transition-all duration-200"
             >
               Try again
             </button>

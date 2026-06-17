@@ -59,8 +59,8 @@ function SignupForm() {
 
         {/* Brand */}
         <div className="space-y-1">
-          <h1 className="font-serif text-4xl text-yearns-cream tracking-tight">Yearns</h1>
-          <p className="text-yearns-gold/60 text-xs tracking-widest uppercase">
+          <h1 className="font-serif text-4xl text-gray-900 tracking-tight">Yearns</h1>
+          <p className="text-gray-600/60 text-xs tracking-widest uppercase">
             Your story awaits
           </p>
         </div>
@@ -69,7 +69,7 @@ function SignupForm() {
         {(stage === 'idle' || stage === 'error' || stage === 'sending') && (
           <form onSubmit={handleSubmit} className="space-y-6">
             {stage === 'error' && (
-              <p className="text-yearns-cream/45 text-sm border border-yearns-cream/10 px-4 py-3 leading-relaxed">
+              <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3 leading-relaxed">
                 {errMsg}
               </p>
             )}
@@ -77,7 +77,7 @@ function SignupForm() {
             <div className="space-y-2 text-left">
               <label
                 htmlFor="email"
-                className="block text-yearns-cream/45 text-xs tracking-widest uppercase"
+                className="block text-gray-900/45 text-xs tracking-widest uppercase"
               >
                 Email
               </label>
@@ -89,19 +89,19 @@ function SignupForm() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-transparent border-b border-yearns-cream/20 text-yearns-cream placeholder-yearns-cream/20 py-2.5 text-sm focus:outline-none focus:border-yearns-gold/60 transition-colors duration-200"
+                className="w-full bg-transparent border-b border-gray-900/20 text-gray-900 placeholder-gray-900/20 py-2.5 text-sm focus:outline-none focus:border-gray-600/60 transition-colors duration-200"
               />
             </div>
 
             <button
               type="submit"
               disabled={stage === 'sending' || !email.trim()}
-              className="w-full py-4 border border-yearns-gold/50 text-yearns-gold font-serif text-base tracking-wide hover:bg-yearns-gold/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-4 border border-gray-600/50 text-gray-600 font-serif text-base tracking-wide hover:bg-gray-600/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {stage === 'sending' ? 'Sending…' : 'Continue'}
             </button>
 
-            <p className="text-yearns-cream/25 text-xs leading-relaxed">
+            <p className="text-gray-900/25 text-xs leading-relaxed">
               We'll send you a sign-in link. No password needed.
               New here? Your account is created automatically.
             </p>
@@ -112,16 +112,16 @@ function SignupForm() {
         {stage === 'sent' && (
           <div className="space-y-6">
             <div className="space-y-3">
-              <p className="font-serif text-yearns-cream/90 text-xl">Check your inbox</p>
-              <p className="text-yearns-cream/45 text-sm leading-relaxed">
+              <p className="font-serif text-gray-900/90 text-xl">Check your inbox</p>
+              <p className="text-gray-900/45 text-sm leading-relaxed">
                 We sent a sign-in link to{' '}
-                <span className="text-yearns-cream/75">{email}</span>.
+                <span className="text-gray-900/75">{email}</span>.
                 Click it to continue — the link expires in 1 hour.
               </p>
             </div>
             <button
               onClick={() => { setEmail(''); setStage('idle') }}
-              className="text-yearns-cream/30 text-xs tracking-widest uppercase hover:text-yearns-cream/55 transition-colors duration-200"
+              className="text-gray-900/30 text-xs tracking-widest uppercase hover:text-gray-900/55 transition-colors duration-200"
             >
               Use a different email
             </button>

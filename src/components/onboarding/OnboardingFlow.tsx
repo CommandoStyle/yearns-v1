@@ -53,7 +53,7 @@ function ProgressDots({ total, current }: { total: number; current: number }) {
         <div
           key={i}
           className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-            i < current ? 'bg-yearns-gold' : 'bg-yearns-cream/20'
+            i < current ? 'bg-gray-600' : 'bg-gray-900/20'
           }`}
         />
       ))}
@@ -165,7 +165,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
             onBack={() => setStep(4)}
           />
           {error && (
-            <p className="fixed bottom-6 inset-x-0 text-center text-yearns-cream/50 text-sm">
+            <p className="fixed bottom-6 inset-x-0 text-center text-gray-900/50 text-sm">
               Something went wrong. Try again.
             </p>
           )}

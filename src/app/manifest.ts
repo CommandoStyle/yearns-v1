@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url:        '/',
     display:          'standalone',   // no browser chrome — immersive reading
     orientation:      'portrait',
-    background_color: '#2D0A3E',      // yearns-plum — shown during splash screen
-    theme_color:      '#2D0A3E',
+    background_color: '#ffffff',
+    theme_color:      '#000000',
     icons: [
       {
         // SVG scales perfectly to any size — supported on all modern Android/Chrome

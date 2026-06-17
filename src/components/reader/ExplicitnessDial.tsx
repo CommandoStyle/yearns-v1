@@ -22,7 +22,7 @@ export function ExplicitnessDial({
 }: ExplicitnessDialProps) {
   return (
     <div
-      className={`flex ${compact ? 'gap-1' : 'w-full border-t border-yearns-cream/10'}`}
+      className={`flex ${compact ? 'gap-1' : 'w-full border-t border-gray-900/10'}`}
       role="radiogroup"
       aria-label="Explicitness level"
     >
@@ -38,8 +38,8 @@ export function ExplicitnessDial({
             className={[
               'transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed',
               compact
-                ? `px-3 py-1.5 rounded-sm text-xs ${active ? 'bg-yearns-gold/15 text-yearns-gold' : 'text-yearns-cream/30 hover:text-yearns-cream/55'}`
-                : `flex-1 py-3 text-xs tracking-wide border-t-2 -mt-px ${active ? 'border-yearns-gold text-yearns-gold' : 'border-transparent text-yearns-cream/30 hover:text-yearns-cream/55'}`,
+                ? `px-3 py-1.5 rounded-sm text-xs ${active ? 'bg-gray-600/15 text-gray-600' : 'text-gray-900/30 hover:text-gray-900/55'}`
+                : `flex-1 py-3 text-xs tracking-wide border-t-2 -mt-px ${active ? 'border-gray-600 text-gray-600' : 'border-transparent text-gray-900/30 hover:text-gray-900/55'}`,
             ].join(' ')}
           >
             {compact ? short : label}

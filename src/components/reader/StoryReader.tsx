@@ -53,12 +53,12 @@ export function StoryReader({
               {paragraphs.map((para, i) => (
                 <p
                   key={i}
-                  className="font-serif text-yearns-cream/90 text-lg leading-8 tracking-[0.01em]"
+                  className="font-serif text-gray-900/90 text-lg leading-8 tracking-[0.01em]"
                 >
                   {para}
                   {/* Blinking cursor appended to the last paragraph only */}
                   {isGenerating && i === paragraphs.length - 1 && (
-                    <span className="inline-block w-px h-5 ml-0.5 bg-yearns-gold/70 align-middle animate-pulse" />
+                    <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
                   )}
                 </p>
               ))}
@@ -68,22 +68,22 @@ export function StoryReader({
           {/* Generating but no paragraphs yet — show pulse placeholder */}
           {isGenerating && !hasText && (
             <div className="space-y-4 animate-pulse">
-              <div className="h-5 bg-yearns-cream/8 rounded w-full" />
-              <div className="h-5 bg-yearns-cream/8 rounded w-11/12" />
-              <div className="h-5 bg-yearns-cream/8 rounded w-4/5" />
+              <div className="h-5 bg-gray-900/8 rounded w-full" />
+              <div className="h-5 bg-gray-900/8 rounded w-11/12" />
+              <div className="h-5 bg-gray-900/8 rounded w-4/5" />
             </div>
           )}
 
           {/* Completion metadata */}
           {isDone && (
-            <p className="mt-10 text-yearns-cream/25 text-xs tracking-widest uppercase text-right">
+            <p className="mt-10 text-gray-900/25 text-xs tracking-widest uppercase text-right">
               {state.wordCount.toLocaleString()} words
             </p>
           )}
 
           {/* Cancelled notice */}
           {isCancelled && hasText && (
-            <p className="mt-10 text-yearns-cream/25 text-xs tracking-widest uppercase text-right">
+            <p className="mt-10 text-gray-900/25 text-xs tracking-widest uppercase text-right">
               Generation stopped · {state.wordCount.toLocaleString()} words
             </p>
           )}
@@ -91,12 +91,12 @@ export function StoryReader({
           {/* Error state */}
           {isError && (
             <div className="mt-16 text-center space-y-6">
-              <p className="text-yearns-cream/40 font-serif text-lg">
+              <p className="text-gray-900/40 font-serif text-lg">
                 {state.errorMessage ?? 'Something went wrong.'}
               </p>
               <button
                 onClick={onReset}
-                className="px-8 py-3 border border-yearns-gold/40 text-yearns-gold/80 text-sm tracking-widest uppercase hover:border-yearns-gold/70 hover:text-yearns-gold transition-all duration-200"
+                className="px-8 py-3 border border-gray-600/40 text-gray-600/80 text-sm tracking-widest uppercase hover:border-gray-600/70 hover:text-gray-600 transition-all duration-200"
               >
                 Try again
               </button>
@@ -108,7 +108,7 @@ export function StoryReader({
       </main>
 
       {/* Fixed bottom bar */}
-      <div className="fixed bottom-0 inset-x-0 border-t border-yearns-cream/8 bg-yearns-plum/95 backdrop-blur-sm">
+      <div className="fixed bottom-0 inset-x-0 border-t border-gray-900/8 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto max-w-2xl px-6 py-4">
 
           {isGenerating && (
@@ -121,7 +121,7 @@ export function StoryReader({
               />
               <button
                 onClick={onCancel}
-                className="ml-auto text-yearns-cream/35 text-xs tracking-widest uppercase hover:text-yearns-cream/60 transition-colors duration-200"
+                className="ml-auto text-gray-900/35 text-xs tracking-widest uppercase hover:text-gray-900/60 transition-colors duration-200"
               >
                 Stop
               </button>
@@ -139,14 +139,14 @@ export function StoryReader({
                 {/* Save — Pro feature, placeholder for now */}
                 <button
                   disabled
-                  className="text-yearns-cream/20 text-xs tracking-widest uppercase cursor-not-allowed"
+                  className="text-gray-900/20 text-xs tracking-widest uppercase cursor-not-allowed"
                   title="Save — available in Pro"
                 >
                   Save
                 </button>
                 <button
                   onClick={onReset}
-                  className="px-5 py-2 border border-yearns-gold/50 text-yearns-gold text-xs tracking-widest uppercase hover:bg-yearns-gold/8 transition-all duration-200"
+                  className="px-5 py-2 border border-gray-600/50 text-gray-600 text-xs tracking-widest uppercase hover:bg-gray-600/8 transition-all duration-200"
                 >
                   New Yearn
                 </button>

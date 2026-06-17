@@ -33,10 +33,10 @@ export function GenreStep({ initialValue, onNext, onBack }: GenreStepProps) {
       <div className="w-full max-w-lg space-y-8 animate-fade-up">
 
         <div className="space-y-3 text-center">
-          <h1 className="font-serif text-4xl text-yearns-cream leading-snug">
+          <h1 className="font-serif text-4xl text-gray-900 leading-snug">
             What worlds pull you in?
           </h1>
-          <p className="text-yearns-cream/50 font-light">
+          <p className="text-gray-900/50 font-light">
             Choose up to three. Your first choice shapes the most.
           </p>
         </div>
@@ -51,19 +51,19 @@ export function GenreStep({ initialValue, onNext, onBack }: GenreStepProps) {
                 onClick={() => toggle(key)}
                 className={`relative p-4 text-left transition-all duration-200 ${
                   active
-                    ? 'border border-yearns-gold/70 bg-yearns-gold/5'
-                    : 'border border-yearns-cream/12 hover:border-yearns-cream/25'
+                    ? 'border border-gray-600/70 bg-gray-600/5'
+                    : 'border border-gray-900/12 hover:border-gray-900/25'
                 }`}
               >
                 {active && (
-                  <span className="absolute top-2.5 right-3 text-yearns-gold/60 text-xs tabular-nums">
+                  <span className="absolute top-2.5 right-3 text-gray-600/60 text-xs tabular-nums">
                     {rank}
                   </span>
                 )}
-                <p className={`font-serif text-lg transition-colors ${active ? 'text-yearns-gold' : 'text-yearns-cream'}`}>
+                <p className={`font-serif text-lg transition-colors ${active ? 'text-gray-600' : 'text-gray-900'}`}>
                   {label}
                 </p>
-                <p className="mt-1 text-yearns-cream/40 text-xs font-light leading-relaxed">
+                <p className="mt-1 text-gray-900/40 text-xs font-light leading-relaxed">
                   {line}
                 </p>
               </button>
@@ -74,14 +74,14 @@ export function GenreStep({ initialValue, onNext, onBack }: GenreStepProps) {
         <div className="flex gap-3 pt-1">
           <button
             onClick={onBack}
-            className="px-5 py-4 text-yearns-cream/35 hover:text-yearns-cream/60 text-sm transition-colors"
+            className="px-5 py-4 text-gray-900/35 hover:text-gray-900/60 text-sm transition-colors"
           >
             ← Back
           </button>
           <button
             onClick={() => onNext(selected)}
             disabled={selected.length === 0}
-            className="flex-1 py-4 border border-yearns-gold/50 text-yearns-gold font-light tracking-widest text-xs uppercase hover:bg-yearns-gold/8 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
+            className="flex-1 py-4 border border-gray-600/50 text-gray-600 font-light tracking-widest text-xs uppercase hover:bg-gray-600/8 disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
           >
             Continue
           </button>

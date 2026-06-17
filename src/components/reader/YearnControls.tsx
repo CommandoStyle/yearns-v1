@@ -62,24 +62,24 @@ export function YearnControls({
 
         {/* Brand */}
         <div className="text-center space-y-1">
-          <h1 className="font-serif text-4xl text-yearns-cream tracking-tight">
+          <h1 className="font-serif text-4xl text-gray-900 tracking-tight">
             Yearns
           </h1>
-          <p className="text-yearns-gold/70 text-xs tracking-widest uppercase font-light">
+          <p className="text-gray-600/70 text-xs tracking-widest uppercase font-light">
             Your story awaits
           </p>
         </div>
 
         {/* Error */}
         {errorCode && ERROR_MESSAGES[errorCode] && (
-          <p className="text-center text-yearns-cream/50 text-sm border border-yearns-cream/10 px-4 py-3">
+          <p className="text-center text-gray-900/50 text-sm border border-gray-900/10 px-4 py-3">
             {ERROR_MESSAGES[errorCode]}
           </p>
         )}
 
         {/* How long */}
         <div className="space-y-3">
-          <p className="text-yearns-cream/50 text-xs tracking-widest uppercase">
+          <p className="text-gray-900/50 text-xs tracking-widest uppercase">
             How long?
           </p>
           <div className="flex gap-2">
@@ -89,8 +89,8 @@ export function YearnControls({
                 onClick={() => setLengthMins(mins)}
                 className={`flex-1 py-2.5 text-xs transition-all duration-200 ${
                   lengthMins === mins
-                    ? 'border border-yearns-gold/70 text-yearns-gold'
-                    : 'border border-yearns-cream/12 text-yearns-cream/40 hover:border-yearns-cream/25 hover:text-yearns-cream/65'
+                    ? 'border border-gray-600/70 text-gray-600'
+                    : 'border border-gray-900/12 text-gray-900/40 hover:border-gray-900/25 hover:text-gray-900/65'
                 }`}
               >
                 {label}
@@ -101,7 +101,7 @@ export function YearnControls({
 
         {/* Where */}
         <div className="space-y-3">
-          <p className="text-yearns-cream/50 text-xs tracking-widest uppercase">
+          <p className="text-gray-900/50 text-xs tracking-widest uppercase">
             Where?
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -111,8 +111,8 @@ export function YearnControls({
                 onClick={() => setSetting(key)}
                 className={`py-2.5 text-xs transition-all duration-200 ${
                   setting === key
-                    ? 'border border-yearns-gold/70 text-yearns-gold'
-                    : 'border border-yearns-cream/12 text-yearns-cream/40 hover:border-yearns-cream/25 hover:text-yearns-cream/65'
+                    ? 'border border-gray-600/70 text-gray-600'
+                    : 'border border-gray-900/12 text-gray-900/40 hover:border-gray-900/25 hover:text-gray-900/65'
                 }`}
               >
                 {label}
@@ -123,7 +123,7 @@ export function YearnControls({
 
         {/* Explicitness */}
         <div className="space-y-3">
-          <p className="text-yearns-cream/50 text-xs tracking-widest uppercase">
+          <p className="text-gray-900/50 text-xs tracking-widest uppercase">
             How explicit?
           </p>
           <ExplicitnessDial value={explicitness} onChange={setExplicitness} />
@@ -132,7 +132,7 @@ export function YearnControls({
         {/* CTA */}
         <button
           onClick={handleGenerate}
-          className="w-full py-5 border border-yearns-gold/50 text-yearns-gold font-serif text-lg tracking-wide hover:bg-yearns-gold/8 transition-all duration-300"
+          className="w-full py-5 border border-gray-600/50 text-gray-600 font-serif text-lg tracking-wide hover:bg-gray-600/8 transition-all duration-300"
         >
           Write my Yearn
         </button>

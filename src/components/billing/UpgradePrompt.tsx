@@ -51,10 +51,10 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
 
         {/* Heading */}
         <div className="text-center space-y-2">
-          <p className="text-yearns-cream/35 text-xs tracking-widest uppercase">
+          <p className="text-gray-900/35 text-xs tracking-widest uppercase">
             You've read your 5 free Yearns this month
           </p>
-          <h2 className="font-serif text-3xl text-yearns-cream tracking-tight">
+          <h2 className="font-serif text-3xl text-gray-900 tracking-tight">
             Continue with Pro
           </h2>
         </div>
@@ -62,21 +62,21 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
         {/* Feature list */}
         <ul className="space-y-3">
           {FEATURES.map(f => (
-            <li key={f} className="flex items-start gap-3 text-yearns-cream/65 text-sm">
-              <span className="text-yearns-gold/60 mt-px">—</span>
+            <li key={f} className="flex items-start gap-3 text-gray-900/65 text-sm">
+              <span className="text-gray-600/60 mt-px">—</span>
               {f}
             </li>
           ))}
         </ul>
 
         {/* Plan toggle */}
-        <div className="flex border border-yearns-cream/12">
+        <div className="flex border border-gray-900/12">
           <button
             onClick={() => setPlan('monthly')}
             className={`flex-1 py-4 text-center transition-all duration-200 ${
               plan === 'monthly'
-                ? 'bg-yearns-gold/10 text-yearns-gold'
-                : 'text-yearns-cream/35 hover:text-yearns-cream/55'
+                ? 'bg-gray-600/10 text-gray-600'
+                : 'text-gray-900/35 hover:text-gray-900/55'
             }`}
           >
             <span className="block text-[10px] tracking-widest uppercase mb-1">Monthly</span>
@@ -84,15 +84,15 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
           </button>
           <button
             onClick={() => setPlan('annual')}
-            className={`flex-1 py-4 text-center border-l border-yearns-cream/12 transition-all duration-200 ${
+            className={`flex-1 py-4 text-center border-l border-gray-900/12 transition-all duration-200 ${
               plan === 'annual'
-                ? 'bg-yearns-gold/10 text-yearns-gold'
-                : 'text-yearns-cream/35 hover:text-yearns-cream/55'
+                ? 'bg-gray-600/10 text-gray-600'
+                : 'text-gray-900/35 hover:text-gray-900/55'
             }`}
           >
             <span className="block text-[10px] tracking-widest uppercase mb-1">Annual</span>
             <span className="font-serif text-xl">$99</span>
-            <span className="block text-[10px] text-yearns-gold/55 mt-0.5">
+            <span className="block text-[10px] text-gray-600/55 mt-0.5">
               $8.25/mo — save 36%
             </span>
           </button>
@@ -100,7 +100,7 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
 
         {/* Error */}
         {failed && (
-          <p className="text-yearns-cream/40 text-xs text-center">
+          <p className="text-gray-900/40 text-xs text-center">
             Something went wrong. Please try again.
           </p>
         )}
@@ -109,13 +109,13 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
         <button
           onClick={handleUpgrade}
           disabled={isLoading || !authToken}
-          className="w-full py-5 border border-yearns-gold/55 text-yearns-gold font-serif text-lg tracking-wide hover:bg-yearns-gold/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-5 border border-gray-600/55 text-gray-600 font-serif text-lg tracking-wide hover:bg-gray-600/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Opening checkout…' : 'Upgrade to Pro'}
         </button>
 
         {/* Alternative processor — shown when Stripe is unavailable */}
-        <p className="text-yearns-cream/18 text-xs text-center">
+        <p className="text-gray-900/18 text-xs text-center">
           Payment issues?{' '}
           <button
             onClick={async () => {
@@ -133,7 +133,7 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
                 setIsLoading(false)
               }
             }}
-            className="underline underline-offset-2 hover:text-yearns-cream/40 transition-colors duration-200"
+            className="underline underline-offset-2 hover:text-gray-900/40 transition-colors duration-200"
           >
             Try an alternative method
           </button>
@@ -142,7 +142,7 @@ export function UpgradePrompt({ authToken, onDismiss }: UpgradePromptProps) {
         {/* Dismiss */}
         <button
           onClick={onDismiss}
-          className="block w-full text-center text-yearns-cream/22 text-xs tracking-widest uppercase hover:text-yearns-cream/45 transition-colors duration-200"
+          className="block w-full text-center text-gray-900/22 text-xs tracking-widest uppercase hover:text-gray-900/45 transition-colors duration-200"
         >
           Maybe later
         </button>
