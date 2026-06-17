@@ -52,7 +52,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen antialiased bg-white text-black">
         {children}
         <ServiceWorkerRegistration />
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (

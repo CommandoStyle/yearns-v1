@@ -5,7 +5,8 @@ import * as Sentry from '@sentry/nextjs'
 // billing, and webhook handlers.
 
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
+  dsn: process.env.SENTRY_DSN || undefined,
+  enabled: !!process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV,
 
   sendDefaultPii: false,
