@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Playfair_Display, Inter } from 'next/font/google'
+import { EB_Garamond, Inter } from 'next/font/google'
 import Script from 'next/script'
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration'
+import { SmoothScroll } from '@/components/SmoothScroll'
 import './globals.css'
 
-const playfair = Playfair_Display({
+const garamond = EB_Garamond({
   subsets: ['latin'],
-  variable: '--font-playfair',
+  variable: '--font-playfair', // keep same CSS var — no component changes needed
   display: 'swap',
 })
 
@@ -51,9 +52,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="en" className={`${garamond.variable} ${inter.variable}`}>
       <body className="min-h-screen antialiased bg-white text-black">
-        {children}
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
         <ServiceWorkerRegistration />
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
           <Script
