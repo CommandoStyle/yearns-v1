@@ -38,8 +38,8 @@ const ERROR_MESSAGES: Partial<Record<YearnErrorCode, string>> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface YearnControlsProps {
-  onGenerate:   (params: GenerateParams) => void
-  errorCode?:   YearnErrorCode | null
+  onGenerate:    (params: GenerateParams) => void
+  errorCode?:    YearnErrorCode | null
   defaultLevel?: ExplicitnessLevel
 }
 

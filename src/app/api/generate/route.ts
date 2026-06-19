@@ -80,6 +80,12 @@ interface GenerateBody {
   participant_mode?: 'participant' | 'voyeur'
   continuation_id?: string
   language?: SupportedLanguage
+  spark?: string
+  character_override?: { name?: string; traits?: string[] }
+  pace?: 1 | 2 | 3
+  specific_detail?: string
+  tonights_want?: string
+  participant_mode_override?: 'participant' | 'voyeur'
 }
 
 function validateBody(body: unknown): GenerateBody | null {
@@ -90,13 +96,27 @@ function validateBody(body: unknown): GenerateBody | null {
   const validSettings: SettingType[] = ['bedroom','hotel','travelling','outdoors','urban','workplace','unknown']
   if (!validSettings.includes(b.setting as SettingType)) return null
   return {
-    explicitness:     b.explicitness as ExplicitnessLevel,
-    setting:          b.setting as SettingType,
-    length_mins:      b.length_mins,
-    participant_mode: b.participant_mode as 'participant' | 'voyeur' | undefined,
-    continuation_id:  typeof b.continuation_id === 'string' ? b.continuation_id : undefined,
-    language:         b.language as SupportedLanguage | undefined,
+    explicitness:              b.explicitness as ExplicitnessLevel,
+    setting:                   b.setting as SettingType,
+    length_mins:               b.length_mins,
+    participant_mode:          b.participant_mode as 'participant' | 'voyeur' | undefined,
+    continuation_id:           typeof b.continuation_id === 'string' ? b.continuation_id : undefined,
+    language:                  b.language as SupportedLanguage | undefined,
+    spark:                     typeof b.spark === 'string' ? b.spark.slice(0, 200) : undefined,
+    character_override:        isCharacterOverride(b.character_override) ? b.character_override : undefined,
+    pace:                      [1,2,3].includes(b.pace as number) ? b.pace as 1|2|3 : undefined,
+    specific_detail:           typeof b.specific_detail === 'string' ? b.specific_detail.slice(0, 60) : undefined,
+    tonights_want:             typeof b.tonights_want === 'string' ? b.tonights_want.slice(0, 120) : undefined,
+    participant_mode_override: b.participant_mode_override as 'participant' | 'voyeur' | undefined,
   }
+}
+
+function isCharacterOverride(v: unknown): v is { name?: string; traits?: string[] } {
+  if (!v || typeof v !== 'object') return false
+  const o = v as Record<string, unknown>
+  if (o.name !== undefined && typeof o.name !== 'string') return false
+  if (o.traits !== undefined && !Array.isArray(o.traits)) return false
+  return true
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -164,14 +184,29 @@ export async function POST(request: NextRequest): Promise<Response> {
   // 8. Build prompt (model-agnostic — same structure for Claude and Together.ai)
   const genRequest: GenerationRequest = {
     profile,
-    explicitness:         body.explicitness,
-    setting:              body.setting,
-    length_mins:          body.length_mins,
-    participant_mode:     body.participant_mode,
-    continuation_id:      body.continuation_id,
-    continuation_context: continuationContext,
-    prompt_version:       promptVersion,
-    language:             body.language,
+    explicitness:              body.explicitness,
+    setting:                   body.setting,
+    length_mins:               body.length_mins,
+    participant_mode:          body.participant_mode,
+    continuation_id:           body.continuation_id,
+    continuation_context:      continuationContext,
+    prompt_version:            promptVersion,
+    language:                  body.language,
+    spark:                     body.spark,
+    character_override:        body.character_override,
+    pace:                      body.pace,
+    specific_detail:           body.specific_detail,
+    tonights_want:             body.tonights_want,
+    participant_mode_override: body.participant_mode_override,
+  }
+
+  const perStoryOverrides = {
+    ...(body.spark               && { spark: true }),
+    ...(body.character_override  && { character_override: true }),
+    ...(body.pace                && { pace: body.pace }),
+    ...(body.specific_detail     && { specific_detail: true }),
+    ...(body.tonights_want       && { tonights_want: true }),
+    ...(body.participant_mode_override && { participant_override: body.participant_mode_override }),
   }
   const prompt = buildPrompt(genRequest)
 
@@ -219,6 +254,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           length_mins: body.length_mins, explicitness: body.explicitness,
           setting: body.setting, status: 'output_filtered',
           word_count: 0, model_used: selectedModel,
+          per_story_overrides: perStoryOverrides,
         })
         return
       }
@@ -239,6 +275,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           length_mins: body.length_mins, explicitness: body.explicitness,
           setting: body.setting, status: 'success',
           word_count: wordCount, duration_ms: durationMs, model_used: selectedModel,
+          per_story_overrides: perStoryOverrides,
         }),
         effectiveTier === 'free'
           ? supabase.rpc('increment_monthly_usage', { p_user_id: userId })
@@ -265,6 +302,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         length_mins: body.length_mins, explicitness: body.explicitness,
         status: 'error', word_count: 0, model_used: selectedModel,
         error_code: message.slice(0, 100),
+        per_story_overrides: perStoryOverrides,
       })
     }
   })()

@@ -296,36 +296,38 @@ export interface Database {
 
       generation_logs: {
         Row: {
-          id:              string
-          user_id:         string
-          prompt_version:  string
-          explicitness:    number | null
-          setting:         string | null
-          language:        string | null
-          length_mins:     number | null
-          is_continuation: boolean
-          status:          'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
-          word_count:      number
-          model_used:      string | null   // added migration 0005: 'CLAUDE'|'LLAMA_70B'|'MIXTRAL'
-          duration_ms:     number | null
-          error_code:      string | null
-          created_at:      string
+          id:                   string
+          user_id:              string
+          prompt_version:       string
+          explicitness:         number | null
+          setting:              string | null
+          language:             string | null
+          length_mins:          number | null
+          is_continuation:      boolean
+          status:               'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
+          word_count:           number
+          model_used:           string | null
+          duration_ms:          number | null
+          error_code:           string | null
+          per_story_overrides:  Json
+          created_at:           string
         }
         Insert: {
-          id?:              string
-          user_id:          string
-          prompt_version:   string
-          explicitness?:    number | null
-          setting?:         string | null
-          language?:        string | null
-          length_mins?:     number | null
-          is_continuation?: boolean
-          status:           'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
-          word_count?:      number
-          model_used?:      string | null
-          duration_ms?:     number | null
-          error_code?:      string | null
-          created_at?:      string
+          id?:                   string
+          user_id:               string
+          prompt_version:        string
+          explicitness?:         number | null
+          setting?:              string | null
+          language?:             string | null
+          length_mins?:          number | null
+          is_continuation?:      boolean
+          status:                'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
+          word_count?:           number
+          model_used?:           string | null
+          duration_ms?:          number | null
+          error_code?:           string | null
+          per_story_overrides?:  Json
+          created_at?:           string
         }
         Update: {
           id?:              string

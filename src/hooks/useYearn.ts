@@ -67,6 +67,13 @@ export interface GenerateParams {
   participant_mode?: 'participant' | 'voyeur'
   continuation_id?: string
   language?: SupportedLanguage
+  // Per-story overrides from pre-generation panel
+  spark?: string
+  character_override?: { name?: string; traits?: string[] }
+  pace?: 1 | 2 | 3
+  specific_detail?: string
+  tonights_want?: string
+  participant_mode_override?: 'participant' | 'voyeur'
 }
 
 export interface UseYearnReturn {

@@ -83,6 +83,16 @@ export interface GenerationRequest {
   continuation_context?: string         // last 200 words of previous Yearn
   prompt_version: string                // semver, loaded from Supabase
   language?: SupportedLanguage
+  // ── Per-story overrides (all optional — fall back to profile if absent) ──
+  spark?: string                        // inciting moment phrase
+  character_override?: {
+    name?: string
+    traits?: string[]                   // max 2 from curated list
+  }
+  pace?: 1 | 2 | 3                      // 1=lingering 2=building 3=inevitable
+  specific_detail?: string              // max 60 chars — free text setting detail
+  tonights_want?: string               // max 120 chars — overrides three_words emphasis
+  participant_mode_override?: ParticipantMode  // per-story override, doesn't touch profile
 }
 
 export interface BuiltPrompt {
@@ -189,12 +199,16 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     continuation_id,
     continuation_context,
     prompt_version,
+    spark,
+    character_override,
+    pace,
+    specific_detail,
+    tonights_want,
   } = req
 
   const lang = req.language ?? profile.language ?? 'en'
-  // Default to participant — the user gave us their name for a reason.
-  // Voyeur mode (third-person stranger) is a future opt-in via profile settings.
-  const mode = req.participant_mode ?? profile.participant_mode ?? 'participant'
+  // participant_mode_override (per-story) > participant_mode (request) > profile
+  const mode = req.participant_mode_override ?? req.participant_mode ?? profile.participant_mode ?? 'participant'
   const targetWords = Math.round(length_mins * WORDS_PER_MINUTE)
   const maxTokens = Math.round(targetWords * TOKENS_PER_WORD * 1.15) // 15% buffer
 
@@ -228,20 +242,30 @@ EXPLICITNESS LEVEL: ${explicitness}/4
 ${EXPLICITNESS_GUIDANCE[explicitness]}
   `.trim())
 
-  // 4. Craft standard
+  // 4. Craft standard (pace-aware)
+  const pacingGuidance = pace === 1
+    ? `Pacing: move slowly. Let each moment breathe. Delay the inevitable —
+       the reader should ache for what's coming long before it arrives.
+       Linger on sensation, interiority, the space between touches.`
+    : pace === 3
+    ? `Pacing: move with compressed urgency. Tension arrives fast and builds
+       faster. The release should feel earned but close — don't make the reader
+       wait. Every paragraph should push toward the inevitable.`
+    : `Pacing: build tension before release. The most charged moments are often
+       the ones just before something happens.`
+
   systemParts.push(`
 CRAFT STANDARD:
-Write prose that earns its explicitness. Use specific, sensory language. 
-Avoid: purple prose, stock phrases ("throbbing", "heaving", "moist"), 
+Write prose that earns its explicitness. Use specific, sensory language.
+Avoid: purple prose, stock phrases ("throbbing", "heaving", "moist"),
 anatomical clinical language, cliché scenarios without specific texture.
 
-Favour: unusual detail, psychological interiority, the specificity of 
-a particular moment — the grain of a table, the angle of light, a pause 
-before a sentence is finished. The best erotic writing makes the reader 
+Favour: unusual detail, psychological interiority, the specificity of
+a particular moment — the grain of a table, the angle of light, a pause
+before a sentence is finished. The best erotic writing makes the reader
 feel desire, not just read about it.
 
-Pacing: build tension before release. The most charged moments are often 
-the ones just before something happens.
+${pacingGuidance}
   `.trim())
 
   // 5. Llama supplement — explicit tiers only
@@ -280,6 +304,14 @@ WORLD: ${GENRE_WORLD[topGenre]}
     `.trim())
   }
 
+  // A1. Opening moment (spark) — anchors the inciting scene
+  if (spark && spark !== 'surprise_me') {
+    narrativeParts.push(`
+OPENING MOMENT: Begin the story from this specific inciting moment: "${spark}"
+Do not announce it — open in the middle of it, already happening.
+    `.trim())
+  }
+
   // B. Emotional register — the most important signal
   if (profile.emotional_register && profile.emotional_register.length > 0) {
     const primaryFeel = profile.emotional_register[0]
@@ -291,9 +323,9 @@ ${secondaryFeel ? `Secondary: ${EMOTIONAL_REGISTER_GUIDANCE[secondaryFeel]}` : '
     `.trim())
   }
 
-  // C. Setting / atmosphere
+  // C. Setting / atmosphere (augmented with specific_detail if provided)
   narrativeParts.push(`
-SETTING: ${SETTING_ATMOSPHERE[setting]}
+SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to weave in naturally: "${specific_detail}" — incorporate this as lived texture, not a fact inserted out of context.` : ''}
   `.trim())
 
   // D. Protagonist configuration
@@ -315,12 +347,29 @@ Give her interiority, specificity, and desire of her own.
     `.trim())
   }
 
-  // E. Who she desires
-  if (profile.desire_targets) {
+  // E. Who she desires (character_override replaces desire_targets for this story)
+  if (character_override && (character_override.name || character_override.traits?.length)) {
+    const parts: string[] = []
+    if (character_override.name) parts.push(`His name is ${character_override.name}.`)
+    if (character_override.traits?.length) {
+      parts.push(`He is defined by: ${character_override.traits.join('; ')}.`)
+    }
+    parts.push('Build a specific person from these qualities — don\'t just note them.')
+    narrativeParts.push(`THE OTHER (for this story): ${parts.join(' ')}`.trim())
+  } else if (profile.desire_targets) {
     narrativeParts.push(`
 THE OTHER: ${profile.desire_targets}
-Let this description guide the character — but add texture. 
+Let this description guide the character — but add texture.
 A type is a starting point, not a character.
+    `.trim())
+  }
+
+  // E1. Tonight's want — highest-priority tone signal when present
+  if (tonights_want) {
+    narrativeParts.push(`
+TONIGHT'S WANT (primary emphasis — this shapes the story above all other preferences):
+"${tonights_want}"
+This specific want should govern the story's tone and content more than any standing preference below.
     `.trim())
   }
 
@@ -328,7 +377,7 @@ A type is a starting point, not a character.
   if (profile.three_words) {
     narrativeParts.push(`
 THE FEELING IN THREE WORDS: ${profile.three_words.join(' · ')}
-Let these words govern the story's rhythm, temperature, and movement.
+${tonights_want ? 'Let these words colour the background — the want above takes precedence.' : 'Let these words govern the story\'s rhythm, temperature, and movement.'}
     `.trim())
   }
 

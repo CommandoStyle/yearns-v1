@@ -6,20 +6,22 @@
 
 import { createServerClient } from '@/lib/supabase'
 import type { ExplicitnessLevel, SettingType } from '@/lib/prompt-engine'
+import type { Json } from '@/types/database'
 
 export interface GenerationLogEntry {
-  user_id:        string
-  prompt_version: string
-  explicitness:   ExplicitnessLevel
-  length_mins:    number
-  status:         'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
-  word_count:     number
-  model_used?:    string   // 'CLAUDE' | 'LLAMA_70B' | 'MIXTRAL'
-  setting?:       SettingType
-  language?:      string
-  continuation?:  boolean
-  duration_ms?:   number
-  error_code?:    string
+  user_id:              string
+  prompt_version:       string
+  explicitness:         ExplicitnessLevel
+  length_mins:          number
+  status:               'success' | 'error' | 'input_filtered' | 'output_filtered' | 'cancelled'
+  word_count:           number
+  model_used?:          string
+  setting?:             SettingType
+  language?:            string
+  continuation?:        boolean
+  duration_ms?:         number
+  error_code?:          string
+  per_story_overrides?: Record<string, unknown>
 }
 
 // Returns the inserted log ID so the generate route can reference it
@@ -37,9 +39,10 @@ export async function logGeneration(entry: GenerationLogEntry): Promise<string |
       model_used:     entry.model_used ?? null,
       setting:        entry.setting,
       language:       entry.language,
-      is_continuation: entry.continuation ?? false,
-      duration_ms:    entry.duration_ms,
-      error_code:     entry.error_code,
+      is_continuation:     entry.continuation ?? false,
+      duration_ms:         entry.duration_ms,
+      error_code:          entry.error_code,
+      per_story_overrides: (entry.per_story_overrides ?? {}) as Json,
     }).select('id').single()
     return data?.id ?? null
   } catch (err) {
