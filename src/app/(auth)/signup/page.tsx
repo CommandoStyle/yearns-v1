@@ -1,56 +1,70 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase'
 
-type Stage = 'idle' | 'sending' | 'sent' | 'error'
+type Stage = 'idle' | 'submitting' | 'error'
 
 const ERROR_COPY: Record<string, string> = {
-  auth_failed: 'The sign-in link expired or was already used. Request a new one below.',
-  default:     'Something went wrong. Please try again.',
+  email_taken:    'An account with that email already exists. Sign in instead.',
+  password_too_short: 'Password must be at least 8 characters.',
+  signup_failed:  'Something went wrong. Please try again.',
+  default:        'Something went wrong. Please try again.',
 }
 
 function SignupForm() {
   const searchParams = useSearchParams()
-  const callbackError = searchParams.get('error')
+  const router       = useRouter()
 
-  const [email, setEmail]   = useState('')
-  const [stage, setStage]   = useState<Stage>(callbackError ? 'error' : 'idle')
-  const [errMsg, setErrMsg] = useState(
-    callbackError ? (ERROR_COPY[callbackError] ?? ERROR_COPY.default) : '',
-  )
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [stage,    setStage]    = useState<Stage>('idle')
+  const [errMsg,   setErrMsg]   = useState('')
 
-  // Redirect already-authenticated users away from this page
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) window.location.replace('/read')
+      if (session) router.replace('/read')
     })
-  }, [])
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim()) return
-    setStage('sending')
+    if (!email.trim() || !password) return
+    setStage('submitting')
+    setErrMsg('')
 
-    const supabase = createBrowserClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        shouldCreateUser: true,
-      },
+    // 1. Create account server-side (bypasses email confirmation)
+    const res = await fetch('/api/auth/signup', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: email.trim(), password }),
     })
 
-    if (error) {
-      // Log actual Supabase error for debugging — never shown to users
-      console.error('[signup] signInWithOtp error:', error.status, error.message, error.name)
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'default' }))
+      setErrMsg(ERROR_COPY[error as string] ?? ERROR_COPY.default)
+      setStage('error')
+      return
+    }
+
+    // 2. Immediately sign in with password
+    const supabase = createBrowserClient()
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email:    email.trim(),
+      password,
+    })
+
+    if (signInError) {
+      console.error('[signup] signInWithPassword error:', signInError)
       setErrMsg(ERROR_COPY.default)
       setStage('error')
-    } else {
-      setStage('sent')
+      return
     }
+
+    router.replace('/onboarding')
   }
 
   return (
@@ -61,24 +75,20 @@ function SignupForm() {
         <div className="space-y-1">
           <h1 className="font-serif text-4xl text-gray-900 tracking-tight">Yearns</h1>
           <p className="text-gray-600/60 text-xs tracking-widest uppercase">
-            Your story awaits
+            Create your account
           </p>
         </div>
 
-        {/* Idle / error — show form */}
-        {(stage === 'idle' || stage === 'error' || stage === 'sending') && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {stage === 'error' && (
-              <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3 leading-relaxed">
-                {errMsg}
-              </p>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {stage === 'error' && (
+            <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3 leading-relaxed">
+              {errMsg}
+            </p>
+          )}
 
-            <div className="space-y-2 text-left">
-              <label
-                htmlFor="email"
-                className="block text-gray-900/45 text-xs tracking-widest uppercase"
-              >
+          <div className="space-y-5 text-left">
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-gray-900/45 text-xs tracking-widest uppercase">
                 Email
               </label>
               <input
@@ -93,48 +103,44 @@ function SignupForm() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={stage === 'sending' || !email.trim()}
-              className="w-full py-4 border border-gray-600/50 text-gray-600 font-serif text-base tracking-wide hover:bg-gray-600/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {stage === 'sending' ? 'Sending…' : 'Continue'}
-            </button>
-
-            <p className="text-gray-900/25 text-xs leading-relaxed">
-              We'll send you a sign-in link. No password needed.
-              New here? Your account is created automatically.
-            </p>
-          </form>
-        )}
-
-        {/* Sent confirmation */}
-        {stage === 'sent' && (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <p className="font-serif text-gray-900/90 text-xl">Check your inbox</p>
-              <p className="text-gray-900/45 text-sm leading-relaxed">
-                We sent a sign-in link to{' '}
-                <span className="text-gray-900/75">{email}</span>.
-                Click it to continue — the link expires in 1 hour.
-              </p>
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-gray-900/45 text-xs tracking-widest uppercase">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={8}
+                placeholder="At least 8 characters"
+                className="w-full bg-transparent border-b border-gray-900/20 text-gray-900 placeholder-gray-900/20 py-2.5 text-sm focus:outline-none focus:border-gray-600/60 transition-colors duration-200"
+              />
             </div>
-            <button
-              onClick={() => { setEmail(''); setStage('idle') }}
-              className="text-gray-900/30 text-xs tracking-widest uppercase hover:text-gray-900/55 transition-colors duration-200"
-            >
-              Use a different email
-            </button>
           </div>
-        )}
+
+          <button
+            type="submit"
+            disabled={stage === 'submitting' || !email.trim() || !password}
+            className="w-full py-4 border border-gray-600/50 text-gray-600 font-serif text-base tracking-wide hover:bg-gray-600/8 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {stage === 'submitting' ? 'Creating account…' : 'Create account'}
+          </button>
+
+          <p className="text-gray-900/25 text-xs leading-relaxed">
+            Already have an account?{' '}
+            <Link href="/login" className="text-gray-900/45 underline hover:text-gray-900/70 transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </form>
 
       </div>
     </div>
   )
 }
-
-// useSearchParams() requires a Suspense boundary in Next.js 14
-import { Suspense } from 'react'
 
 export default function SignupPage() {
   return (

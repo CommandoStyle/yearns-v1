@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes that require an authenticated session.
 // Unauthenticated visitors are redirected to /signup.
-const PROTECTED_PREFIXES = ['/read', '/onboarding']
+const PROTECTED_PREFIXES = ['/read', '/onboarding', '/settings']
 
 // Routes that additionally require trainer or admin role.
 const TRAINER_PREFIXES = ['/trainer', '/api/trainer']
@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
       }
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/signup'
+      redirectUrl.pathname = '/login'
       redirectUrl.searchParams.set('next', pathname)
       return NextResponse.redirect(redirectUrl)
     }
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
 
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/signup'
+    redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
   }

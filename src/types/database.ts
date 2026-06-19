@@ -356,6 +356,48 @@ export interface Database {
         ]
       }
 
+      webauthn_credentials: {
+        Row: {
+          id:            string
+          user_id:       string
+          credential_id: string
+          public_key:    string
+          counter:       number
+          device_label:  string | null
+          created_at:    string
+          last_used_at:  string | null
+        }
+        Insert: {
+          id?:            string
+          user_id:        string
+          credential_id:  string
+          public_key:     string
+          counter?:       number
+          device_label?:  string | null
+          created_at?:    string
+          last_used_at?:  string | null
+        }
+        Update: {
+          id?:            string
+          user_id?:       string
+          credential_id?: string
+          public_key?:    string
+          counter?:       number
+          device_label?:  string | null
+          created_at?:    string
+          last_used_at?:  string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'webauthn_credentials_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+
       implicit_signals: {
         Row: {
           id:         string
