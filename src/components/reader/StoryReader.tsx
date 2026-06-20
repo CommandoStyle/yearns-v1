@@ -53,9 +53,8 @@ export function StoryReader({
               {paragraphs.map((para, i) => (
                 <p
                   key={i}
-                  className={`font-serif text-gray-900/90 text-lg leading-9 tracking-[0.01em] ${
-                    i === 0 ? '' : 'indent-8'
-                  }`}
+                  className="font-serif text-gray-900/90 text-lg leading-9 tracking-[0.01em]"
+                  style={{ textIndent: i === 0 ? '0' : '2em', marginBottom: 0 }}
                 >
                   {para}
                   {/* Blinking cursor appended to the last paragraph only */}
