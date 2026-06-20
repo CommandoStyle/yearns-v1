@@ -30,7 +30,7 @@ export function StoryReader({
   }, [state.text, state.status])
 
   const paragraphs = state.text
-    .split(/\n\n+/)
+    .split(/\n+/)
     .map(p => p.trim())
     .filter(Boolean)
 

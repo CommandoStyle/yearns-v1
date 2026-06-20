@@ -289,6 +289,11 @@ English conventions.
     `.trim())
   }
 
+  // Output format — always last so it is freshest in context
+  systemParts.push(
+    'OUTPUT FORMAT: Plain prose only. Separate every paragraph with a single blank line (two newlines). No headings, no chapter numbers, no asterisk dividers, no markdown.'
+  )
+
   const system = systemParts.join('\n\n')
 
   // ── User turn (narrative prompt) ─────────────────────────────────────────
