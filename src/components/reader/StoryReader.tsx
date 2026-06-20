@@ -49,7 +49,7 @@ export function StoryReader({
 
           {/* Story text */}
           {hasText && (
-            <div>
+            <div data-yn-build="v8">
               {paragraphs.map((para, i) => (
                 <div
                   key={i}
