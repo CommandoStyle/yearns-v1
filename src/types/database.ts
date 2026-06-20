@@ -356,6 +356,40 @@ export interface Database {
         ]
       }
 
+      originality_flags: {
+        Row: {
+          id:           string
+          yearn_id:     string | null
+          story_id:     string | null
+          result:       Json
+          status:       'pending_review' | 'reviewed_ok' | 'reviewed_concern'
+          reviewed_by:  string | null
+          reviewed_at:  string | null
+          created_at:   string
+        }
+        Insert: {
+          id?:          string
+          yearn_id?:    string | null
+          story_id?:    string | null
+          result:       Json
+          status?:      'pending_review' | 'reviewed_ok' | 'reviewed_concern'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?:  string
+        }
+        Update: {
+          id?:          string
+          yearn_id?:    string | null
+          story_id?:    string | null
+          result?:      Json
+          status?:      'pending_review' | 'reviewed_ok' | 'reviewed_concern'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?:  string
+        }
+        Relationships: []
+      }
+
       webauthn_credentials: {
         Row: {
           id:            string

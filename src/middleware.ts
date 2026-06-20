@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PROTECTED_PREFIXES = ['/read', '/onboarding', '/settings']
 
 // Routes that additionally require trainer or admin role.
-const TRAINER_PREFIXES = ['/trainer', '/api/trainer']
+const TRAINER_PREFIXES = ['/trainer', '/api/trainer', '/admin', '/api/admin']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

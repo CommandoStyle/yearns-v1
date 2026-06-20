@@ -24,6 +24,7 @@ import {
   type SessionStats,
   type ReviewStats,
 } from '@/types/trainer'
+import { checkAgainstGoldCorpus, type SimilarityResult } from '@/lib/originality-check'
 
 export const runtime = 'edge'
 
@@ -156,6 +157,55 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     corpusTag = (avgScore >= 4.0 && submission.reread) ? 'gold' : null
   }
 
+  // ── N-gram similarity check (gold corpus) ────────────────────────────────────
+  // Run when gold tag is being assigned. Non-blocking — warnings surface to the
+  // trainer but do NOT auto-reject. Human makes the final call.
+  let similarityResult: SimilarityResult | null = null
+  let goldSimilarityWarning: { storyId: string; score: number } | null = null
+
+  if (corpusTag === 'gold') {
+    try {
+      // Fetch current story text from Storage
+      const { data: thisFile } = await supabase.storage
+        .from('trainer-stories')
+        .download(`${submission.story_id}.txt`)
+
+      if (thisFile) {
+        const thisText = await thisFile.text()
+
+        // List existing gold stories to compare against
+        const { data: goldReviews } = await supabase
+          .from('trainer_reviews')
+          .select('story_id')
+          .eq('corpus_tag', 'gold')
+          .neq('story_id', submission.story_id)
+
+        const goldTexts: Array<{ story_id: string; text: string }> = []
+        await Promise.all(
+          (goldReviews ?? []).map(async (r) => {
+            const { data: f } = await supabase.storage
+              .from('trainer-stories')
+              .download(`${r.story_id}.txt`)
+            if (f) goldTexts.push({ story_id: r.story_id, text: await f.text() })
+          })
+        )
+
+        if (goldTexts.length > 0) {
+          similarityResult = checkAgainstGoldCorpus(thisText, goldTexts)
+          if (similarityResult.flagged && similarityResult.matchedStoryId) {
+            goldSimilarityWarning = {
+              storyId: similarityResult.matchedStoryId,
+              score:   similarityResult.maxSimilarity,
+            }
+          }
+        }
+      }
+    } catch (err) {
+      // Similarity check failure must never block the review submission
+      console.error('[trainer/reviews] Similarity check error (non-fatal):', err)
+    }
+  }
+
   // Upsert the review (trainer can revise a submission in the same session)
   const { data: review, error: reviewError } = await supabase
     .from('trainer_reviews')
@@ -173,6 +223,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       model_used:     logEntry?.model_used ?? null,
       explicitness:   logEntry?.explicitness ?? null,
       language:       logEntry?.language ?? null,
+      // Similarity check result (null if not a gold submission or no corpus yet)
+      similarity_check: similarityResult
+        ? {
+            max_similarity:    similarityResult.maxSimilarity,
+            matched_story_id:  similarityResult.matchedStoryId,
+            flagged:           similarityResult.flagged,
+            checked_at:        similarityResult.checkedAt,
+          }
+        : null,
     }, {
       onConflict: 'story_id,trainer_id',
       ignoreDuplicates: false,  // allow updates
@@ -208,10 +267,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Compute session stats
   const stats = await computeSessionStats(trainerId, supabase)
 
-  const response: ReviewSubmissionResponse = {
+  const response: ReviewSubmissionResponse & {
+    gold_similarity_warning?: { storyId: string; score: number }
+  } = {
     review_id:    review!.id,
     next_story:   nextData.story ?? null,
     session_stats: stats,
+    ...(goldSimilarityWarning && { gold_similarity_warning: goldSimilarityWarning }),
   }
 
   return NextResponse.json(response)
