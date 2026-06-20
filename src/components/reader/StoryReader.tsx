@@ -49,11 +49,25 @@ export function StoryReader({
 
           {/* Story text */}
           {hasText && (
-            <div className="story-body">
+            <div id="yn-story">
+              <style dangerouslySetInnerHTML={{ __html: `
+                #yn-story p {
+                  font-family: var(--font-playfair), Georgia, serif !important;
+                  font-size: 1.125rem !important;
+                  line-height: 2.25rem !important;
+                  letter-spacing: 0.01em !important;
+                  color: rgba(0,0,0,0.9) !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  text-indent: 0 !important;
+                }
+                #yn-story p + p {
+                  text-indent: 2em !important;
+                }
+              `}} />
               {paragraphs.map((para, i) => (
                 <p key={i}>
                   {para}
-                  {/* Blinking cursor appended to the last paragraph only */}
                   {isGenerating && i === paragraphs.length - 1 && (
                     <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
                   )}
