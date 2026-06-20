@@ -42,3 +42,25 @@
     scroll-behavior: smooth;
   }
 }
+
+/* ── Story reader typography ────────────────────────────────────────────────── */
+/* Classic literary fiction formatting: flush first paragraph,                  */
+/* first-line indent on all subsequent paragraphs, no inter-paragraph gap.      */
+
+.story-body {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.125rem;   /* 18px */
+  line-height: 2.25rem;  /* leading-9 */
+  letter-spacing: 0.01em;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.story-body p {
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+}
+
+.story-body p + p {
+  text-indent: 2em;
+}

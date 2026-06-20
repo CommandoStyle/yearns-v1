@@ -49,13 +49,9 @@ export function StoryReader({
 
           {/* Story text */}
           {hasText && (
-            <div>
+            <div className="story-body">
               {paragraphs.map((para, i) => (
-                <p
-                  key={i}
-                  className="font-serif text-gray-900/90 text-lg leading-9 tracking-[0.01em]"
-                  style={{ textIndent: i === 0 ? '0' : '2em', marginBottom: 0 }}
-                >
+                <p key={i}>
                   {para}
                   {/* Blinking cursor appended to the last paragraph only */}
                   {isGenerating && i === paragraphs.length - 1 && (
