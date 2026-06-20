@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AgeStep }     from './steps/AgeStep'
 import { NameStep }    from './steps/NameStep'
 import { GenreStep }   from './steps/GenreStep'
 import { FeelStep }    from './steps/FeelStep'
@@ -14,10 +15,10 @@ import { useProfile } from '@/hooks/useProfile'
 
 interface OnboardingData {
   display_name:       string
-  genres:             string[]   // ordered: first = highest weight
-  emotional_register: string[]   // ordered: first = primary
+  genres:             string[]
+  emotional_register: string[]
   desire_targets:     string
-  settings:           string[]   // ordered: first = preferred
+  settings:           string[]
 }
 
 const EMPTY: OnboardingData = {
@@ -75,17 +76,28 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
     setData(d => ({ ...d, ...partial }))
   }
 
+  // Step 1: age gate — call server to mark age_verified before proceeding
+  async function handleAgeConfirmed(_dob: string) {
+    await fetch('/api/auth/verify-age', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    // Proceed regardless of result — failure is non-fatal for the flow.
+    // The generate endpoint will still enforce age_verified server-side.
+    setStep(2)
+  }
+
   async function handleComplete(finalData: OnboardingData) {
     setSaving(true)
     setError(false)
 
     const success = await update(
       {
-        display_name:       finalData.display_name   || undefined,
-        genre_weights:      finalData.genres.length   > 0 ? genreWeights(finalData.genres)     : undefined,
-        emotional_register: finalData.emotional_register.length > 0 ? finalData.emotional_register : undefined,
-        desire_targets:     finalData.desire_targets || undefined,
-        setting_preference: finalData.settings.length > 0 ? settingWeights(finalData.settings) : undefined,
+        display_name:        finalData.display_name   || undefined,
+        genre_weights:       finalData.genres.length   > 0 ? genreWeights(finalData.genres)     : undefined,
+        emotional_register:  finalData.emotional_register.length > 0 ? finalData.emotional_register : undefined,
+        desire_targets:      finalData.desire_targets || undefined,
+        setting_preference:  finalData.settings.length > 0 ? settingWeights(finalData.settings) : undefined,
         onboarding_complete: true,
       },
       authToken,
@@ -101,17 +113,14 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
 
   if (saving) return <GeneratingScreen />
 
-  const TOTAL = 5
+  const TOTAL = 6  // age + name + genre + feel + desire + setting
 
   switch (step) {
     case 1:
       return (
         <>
           <ProgressDots total={TOTAL} current={1} />
-          <NameStep
-            initialValue={data.display_name}
-            onNext={display_name => { patch({ display_name }); setStep(2) }}
-          />
+          <AgeStep onNext={handleAgeConfirmed} />
         </>
       )
 
@@ -119,10 +128,9 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={2} />
-          <GenreStep
-            initialValue={data.genres}
-            onNext={genres => { patch({ genres }); setStep(3) }}
-            onBack={() => setStep(1)}
+          <NameStep
+            initialValue={data.display_name}
+            onNext={display_name => { patch({ display_name }); setStep(3) }}
           />
         </>
       )
@@ -131,9 +139,9 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={3} />
-          <FeelStep
-            initialValue={data.emotional_register}
-            onNext={emotional_register => { patch({ emotional_register }); setStep(4) }}
+          <GenreStep
+            initialValue={data.genres}
+            onNext={genres => { patch({ genres }); setStep(4) }}
             onBack={() => setStep(2)}
           />
         </>
@@ -143,9 +151,9 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={4} />
-          <DesireStep
-            initialValue={data.desire_targets}
-            onNext={desire_targets => { patch({ desire_targets }); setStep(5) }}
+          <FeelStep
+            initialValue={data.emotional_register}
+            onNext={emotional_register => { patch({ emotional_register }); setStep(5) }}
             onBack={() => setStep(3)}
           />
         </>
@@ -155,6 +163,18 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={5} />
+          <DesireStep
+            initialValue={data.desire_targets}
+            onNext={desire_targets => { patch({ desire_targets }); setStep(6) }}
+            onBack={() => setStep(4)}
+          />
+        </>
+      )
+
+    case 6:
+      return (
+        <>
+          <ProgressDots total={TOTAL} current={6} />
           <SettingStep
             initialValue={data.settings}
             onNext={settings => {
@@ -162,7 +182,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
               patch({ settings })
               handleComplete(finalData)
             }}
-            onBack={() => setStep(4)}
+            onBack={() => setStep(5)}
           />
           {error && (
             <p className="fixed bottom-6 inset-x-0 text-center text-gray-900/50 text-sm">
