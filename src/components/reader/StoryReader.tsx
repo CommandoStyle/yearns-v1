@@ -49,29 +49,26 @@ export function StoryReader({
 
           {/* Story text */}
           {hasText && (
-            <div id="yn-story">
-              <style dangerouslySetInnerHTML={{ __html: `
-                #yn-story p {
-                  font-family: var(--font-playfair), Georgia, serif !important;
-                  font-size: 1.125rem !important;
-                  line-height: 2.25rem !important;
-                  letter-spacing: 0.01em !important;
-                  color: rgba(0,0,0,0.9) !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  text-indent: 0 !important;
-                }
-                #yn-story p + p {
-                  text-indent: 2em !important;
-                }
-              `}} />
+            <div>
               {paragraphs.map((para, i) => (
-                <p key={i}>
+                <div
+                  key={i}
+                  style={{
+                    fontFamily: "'EB Garamond', Georgia, serif",
+                    fontSize: '1.125rem',
+                    lineHeight: '2.25rem',
+                    letterSpacing: '0.01em',
+                    color: 'rgba(0,0,0,0.9)',
+                    margin: 0,
+                    padding: 0,
+                    textIndent: i === 0 ? 0 : '2em',
+                  }}
+                >
                   {para}
                   {isGenerating && i === paragraphs.length - 1 && (
                     <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
                   )}
-                </p>
+                </div>
               ))}
             </div>
           )}
