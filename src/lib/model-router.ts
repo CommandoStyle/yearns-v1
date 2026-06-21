@@ -38,9 +38,10 @@ const MODELS = {
   // Serverless (pay-per-token, no dedicated endpoint needed).
   LLAMA_70B: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
 
-  // Llama 3.3 70B also covers level 4 for now — upgrade to a larger
-  // serverless model (e.g. Qwen3-235B) once level 3 is confirmed working.
-  MIXTRAL: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  // Qwen3-235B via Together.ai — unrestricted tier (level 4).
+  // 235B total / 22B active (MoE), throughput-optimised variant.
+  // Qwen models are permissive for English adult content.
+  MIXTRAL: 'Qwen/Qwen3-235B-A22B-Instruct-2507-tput',
 } as const
 
 type ModelKey = keyof typeof MODELS
