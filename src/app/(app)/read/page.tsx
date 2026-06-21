@@ -18,15 +18,20 @@ export default function ReadPage() {
 
   const [currentExplicitness, setCurrentExplicitness] = useState<ExplicitnessLevel>(2)
   const [pendingParams, setPendingParams]              = useState<GenerateParams | null>(null)
+  const [lastParams, setLastParams]                    = useState<GenerateParams | null>(null)
   const [profile, setProfile]                         = useState<DesireProfile | null>(null)
+  const [isPro, setIsPro]                             = useState(false)
 
-  // Fetch profile once for spark sorting + default participant mode
+  // Fetch profile + subscription status on mount
   useEffect(() => {
     if (!authToken) return
-    fetch('/api/profile', { headers: { Authorization: `Bearer ${authToken}` } })
-      .then(r => r.json())
-      .then(({ profile: p }) => { if (p) setProfile(p) })
-      .catch(() => {})
+    Promise.all([
+      fetch('/api/profile', { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json()),
+      fetch('/api/billing/status', { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json()).catch(() => ({})),
+    ]).then(([{ profile: p }, billing]) => {
+      if (p) setProfile(p)
+      if (billing?.tier === 'pro' && billing?.status === 'active') setIsPro(true)
+    }).catch(() => {})
   }, [authToken])
 
   const topGenre = getTopGenre(profile?.genre_weights)
@@ -38,6 +43,7 @@ export default function ReadPage() {
   }
 
   function handlePanelConfirm(params: GenerateParams) {
+    setLastParams(params)
     setPendingParams(null)
     generate(params)
   }
@@ -45,6 +51,7 @@ export default function ReadPage() {
   function handlePanelSkip() {
     if (!pendingParams) return
     const params = pendingParams
+    setLastParams(params)
     setPendingParams(null)
     generate(params)
   }
@@ -86,6 +93,13 @@ export default function ReadPage() {
           onReset={handleReset}
           onAdjustExplicitness={handleAdjustExplicitness}
           currentExplicitness={currentExplicitness}
+          authToken={authToken}
+          isPro={isPro}
+          generationMeta={lastParams ? {
+            setting:      lastParams.setting,
+            explicitness: lastParams.explicitness,
+            length_mins:  lastParams.length_mins,
+          } : undefined}
         />
       )}
 

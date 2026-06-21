@@ -47,23 +47,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const supabase = getSupabase()
 
+  // Get IDs already in the queue so we can exclude them
+  const { data: alreadyQueued } = await supabase
+    .from('story_queue')
+    .select('story_id')
+
+  const excludeIds = (alreadyQueued ?? []).map(r => r.story_id as string)
+
   // Find recent successful generations not yet in the queue
   let query = supabase
     .from('generation_logs')
     .select('id, prompt_version, model_used, explicitness, language, length_mins')
     .eq('status', 'success')
-    .not('id', 'in', `(SELECT story_id FROM story_queue)`)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .limit(limit + excludeIds.length) // over-fetch so we have enough after filtering
 
   if (promptVersion) query = query.eq('prompt_version', promptVersion)
   if (modelUsed)     query = query.eq('model_used', modelUsed)
 
-  const { data: logs, error: logsError } = await query
+  const { data: allLogs, error: logsError } = await query
 
   if (logsError) {
     return NextResponse.json({ error: 'query_failed', detail: logsError.message }, { status: 500 })
   }
+
+  const logs = (allLogs ?? [])
+    .filter(l => !excludeIds.includes(l.id))
+    .slice(0, limit)
 
   if (!logs || logs.length === 0) {
     return NextResponse.json({ queued: 0, message: 'No new stories to queue' })

@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AgeStep }     from './steps/AgeStep'
-import { NameStep }    from './steps/NameStep'
-import { GenreStep }   from './steps/GenreStep'
-import { FeelStep }    from './steps/FeelStep'
-import { DesireStep }  from './steps/DesireStep'
-import { SettingStep } from './steps/SettingStep'
+import { AgeStep }      from './steps/AgeStep'
+import { NameStep }     from './steps/NameStep'
+import { GenreStep }    from './steps/GenreStep'
+import { FeelStep }     from './steps/FeelStep'
+import { DesireStep }   from './steps/DesireStep'
+import { SettingStep }  from './steps/SettingStep'
+import { LanguageStep } from './steps/LanguageStep'
+import type { SupportedLanguage } from '@/lib/prompt-engine'
 import { GeneratingScreen } from './GeneratingScreen'
 import { useProfile } from '@/hooks/useProfile'
 
@@ -19,6 +21,7 @@ interface OnboardingData {
   emotional_register: string[]
   desire_targets:     string
   settings:           string[]
+  language:           SupportedLanguage
 }
 
 const EMPTY: OnboardingData = {
@@ -27,6 +30,7 @@ const EMPTY: OnboardingData = {
   emotional_register: [],
   desire_targets:     '',
   settings:           [],
+  language:           'en',
 }
 
 interface OnboardingFlowProps {
@@ -98,6 +102,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
         emotional_register:  finalData.emotional_register.length > 0 ? finalData.emotional_register : undefined,
         desire_targets:      finalData.desire_targets || undefined,
         setting_preference:  finalData.settings.length > 0 ? settingWeights(finalData.settings) : undefined,
+        language:            finalData.language,
         onboarding_complete: true,
       },
       authToken,
@@ -113,7 +118,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
 
   if (saving) return <GeneratingScreen />
 
-  const TOTAL = 6  // age + name + genre + feel + desire + setting
+  const TOTAL = 7  // age + name + genre + feel + desire + setting + language
 
   switch (step) {
     case 1:
@@ -177,12 +182,24 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
           <ProgressDots total={TOTAL} current={6} />
           <SettingStep
             initialValue={data.settings}
-            onNext={settings => {
-              const finalData = { ...data, settings }
-              patch({ settings })
+            onNext={settings => { patch({ settings }); setStep(7) }}
+            onBack={() => setStep(5)}
+          />
+        </>
+      )
+
+    case 7:
+      return (
+        <>
+          <ProgressDots total={TOTAL} current={7} />
+          <LanguageStep
+            initialValue={data.language}
+            onNext={language => {
+              const finalData = { ...data, language }
+              patch({ language })
               handleComplete(finalData)
             }}
-            onBack={() => setStep(5)}
+            onBack={() => setStep(6)}
           />
           {error && (
             <p className="fixed bottom-6 inset-x-0 text-center text-gray-900/50 text-sm">

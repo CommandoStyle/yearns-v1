@@ -64,16 +64,18 @@ export interface GenerateParams {
   explicitness: ExplicitnessLevel
   setting: SettingType
   length_mins: number
-  participant_mode?: 'participant' | 'voyeur'
+  participant_mode?: import('@/lib/prompt-engine').ParticipantMode
   continuation_id?: string
   language?: SupportedLanguage
   // Per-story overrides from pre-generation panel
   spark?: string
-  character_override?: { name?: string; traits?: string[] }
+  characters?: import('@/lib/prompt-engine').CharacterConfig[]
   pace?: 1 | 2 | 3
   specific_detail?: string
   tonights_want?: string
-  participant_mode_override?: 'participant' | 'voyeur'
+  participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
+  voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
+  alone_context?: import('@/lib/prompt-engine').AloneContext
 }
 
 export interface UseYearnReturn {

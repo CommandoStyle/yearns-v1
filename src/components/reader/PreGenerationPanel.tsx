@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { GenerateParams } from '@/hooks/useYearn'
-import type { Genre } from '@/lib/prompt-engine'
+import type { AloneContext, CharacterConfig, Genre, ParticipantMode, PerceptualChannel } from '@/lib/prompt-engine'
 
 // ─── Curated content ──────────────────────────────────────────────────────────
 
@@ -44,12 +44,65 @@ const PACE_OPTIONS: { value: 1 | 2 | 3; label: string; sub: string }[] = [
   { value: 3, label: 'Inevitable',  sub: 'compressed, urgent' },
 ]
 
+const WATCHER_POSITIONS = [
+  'through a cracked door',
+  'from an adjacent balcony',
+  'in the next room, walls are thin',
+  'across the restaurant',
+  'a video call left on by accident',
+  'through the gap in the blinds',
+]
+
+const PERCEPTUAL_CHANNELS: { value: PerceptualChannel; label: string }[] = [
+  { value: 'full_sight', label: 'I can see everything'                          },
+  { value: 'sound_only', label: 'I can only hear'                               },
+  { value: 'fragments',  label: 'glimpses and fragments, not the full picture'  },
+  { value: 'peripheral', label: 'aware of them, not directly watching'          },
+]
+
+const RELATIONSHIPS = [
+  'a stranger',
+  'a friend',
+  'a coworker',
+  'my partner, with someone else',
+  'someone from my past',
+]
+
+const INTERIOR_STATES = [
+  'an illicit thrill',
+  'envy',
+  'tenderness I didn\'t expect',
+  'arousal mixed with guilt',
+  'detached fascination',
+  'I shouldn\'t be watching and I can\'t look away',
+]
+
+// ─── Curated roles ────────────────────────────────────────────────────────────
+
+const ROLES_ESTABLISHED = ['husband', 'boyfriend', 'wife', 'girlfriend', 'long-term partner']
+const ROLES_SERVICE     = ['plumber', 'personal trainer', 'masseuse', 'real estate agent', 'delivery driver']
+const ROLES_PROXIMITY   = ['neighbor', 'coworker', 'boss', 'stranger']
+const ROLES_TRANSGRESSIVE = ["friend's husband", "friend's wife", 'ex', 'best friend']
+
+const ALONE_FOCUS_OPTIONS: { value: AloneContext['focus']; label: string; sub: string }[] = [
+  { value: 'solitude',           label: 'Just herself',        sub: 'pure internal, sensory'         },
+  { value: 'object',             label: 'With a toy',          sub: 'an object, part of the scene'   },
+  { value: 'watching_or_reading', label: 'Watching something', sub: 'consuming adult content'        },
+  { value: 'memory',             label: 'A memory',            sub: 'blending past and present'      },
+]
+
+// ─── Empty character factory ──────────────────────────────────────────────────
+
+function emptyCharacter(): CharacterConfig {
+  return { id: Math.random().toString(36).slice(2), gender: 'unspecified' }
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PreGenerationPanelProps {
   baseParams:    GenerateParams
   topGenre?:     Genre
-  defaultMode?:  'participant' | 'voyeur'
+  defaultMode?:  ParticipantMode
   onConfirm:     (params: GenerateParams) => void
   onSkip:        () => void
   authToken:     string | null
@@ -65,19 +118,36 @@ export function PreGenerationPanel({
   onSkip,
   authToken,
 }: PreGenerationPanelProps) {
-  const [mode, setMode]               = useState<'participant' | 'voyeur'>(defaultMode)
-  const [spark, setSpark]             = useState<string | null>(null)
+  const [mode, setMode] = useState<ParticipantMode>(defaultMode)
+
+  // ── Shared fields ──────────────────────────────────────────────────────────
+  const [spark, setSpark]               = useState<string | null>(null)
   const [sparkFreeText, setSparkFreeText] = useState('')
   const [showAllSparks, setShowAllSparks] = useState(false)
-  const [showSparks, setShowSparks]   = useState(false) // collapsed by default, open on interact
-  const [name, setName]               = useState('')
-  const [traits, setTraits]           = useState<string[]>([])
-  const [showCharacter, setShowCharacter] = useState(false)
-  const [pace, setPace]               = useState<1 | 2 | 3>(2)
+  const [showSparks, setShowSparks]     = useState(false)
+  const [pace, setPace]                 = useState<1 | 2 | 3>(2)
   const [specificDetail, setSpecificDetail] = useState('')
   const [tonightsWant, setTonightsWant]     = useState('')
 
-  // Sort sparks — top genre first
+  // ── Participant-mode: character roster ─────────────────────────────────────
+  const [characters, setCharacters] = useState<CharacterConfig[]>([emptyCharacter()])
+  const [showCharacters, setShowCharacters] = useState(false)
+  // Per-character: whether the "explore more roles" expansion is open
+  const [showTransgressiveRoles, setShowTransgressiveRoles] = useState<Record<string, boolean>>({})
+
+  // ── Voyeur-mode: watcher context ───────────────────────────────────────────
+  const [watcherPosition, setWatcherPosition]   = useState('')
+  const [watcherPositionFree, setWatcherPositionFree] = useState('')
+  const [perceptualChannel, setPerceptualChannel] = useState<PerceptualChannel>('full_sight')
+  const [relationship, setRelationship]         = useState('')
+  const [relationshipFree, setRelationshipFree] = useState('')
+  const [interiorState, setInteriorState]       = useState<string[]>([])
+
+  // ── Alone-mode: focus + discovery risk ─────────────────────────────────────
+  const [aloneFocus, setAloneFocus]             = useState<AloneContext['focus']>('solitude')
+  const [discoveryRisk, setDiscoveryRisk]       = useState(false)
+
+  // ── Spark helpers ──────────────────────────────────────────────────────────
   const sortedSparks = [...SPARKS].sort((a, b) => {
     const aMatch = topGenre && a.genres.includes(topGenre) ? -1 : 0
     const bMatch = topGenre && b.genres.includes(topGenre) ? -1 : 0
@@ -85,31 +155,76 @@ export function PreGenerationPanel({
   })
   const visibleSparks = showAllSparks ? sortedSparks : sortedSparks.slice(0, 6)
 
-  function toggleTrait(t: string) {
-    setTraits(prev =>
-      prev.includes(t) ? prev.filter(x => x !== t) : prev.length < 2 ? [...prev, t] : prev
+  // ── Character helpers ──────────────────────────────────────────────────────
+  function updateCharacter(id: string, patch: Partial<CharacterConfig>) {
+    setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+  }
+
+  function toggleTrait(charId: string, trait: string) {
+    setCharacters(prev => prev.map(c => {
+      if (c.id !== charId) return c
+      const has = c.traits?.includes(trait)
+      if (has) return { ...c, traits: c.traits!.filter(t => t !== trait) }
+      if ((c.traits?.length ?? 0) >= 2) return c
+      return { ...c, traits: [...(c.traits ?? []), trait] }
+    }))
+  }
+
+  function addCharacter() {
+    if (characters.length >= 4) return
+    setCharacters(prev => [...prev, emptyCharacter()])
+  }
+
+  function removeCharacter(id: string) {
+    setCharacters(prev => prev.length > 1 ? prev.filter(c => c.id !== id) : prev)
+  }
+
+  // ── Interior state (voyeur, max 2) ─────────────────────────────────────────
+  function toggleInteriorState(s: string) {
+    setInteriorState(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s)
+        : prev.length < 2 ? [...prev, s] : prev
     )
   }
 
+  // ── Confirm ────────────────────────────────────────────────────────────────
   function handleConfirm() {
     const activeSpark = sparkFreeText.trim() || spark || undefined
+    const activePosition = watcherPositionFree.trim() || watcherPosition || undefined
+    const activeRelationship = relationshipFree.trim() || relationship || undefined
 
-    // Fire implicit signals for any field used
-    if (activeSpark)            signal('spark_selected',           { spark: activeSpark })
-    if (name || traits.length)  signal('character_override_used',  { has_name: !!name, trait_count: traits.length })
-    if (pace !== 2)             signal('pace_selected',            { pace })
-    if (specificDetail.trim())  signal('specific_detail_used',     {})
-    if (tonightsWant.trim())    signal('tonights_want_used',       {})
-    if (mode !== defaultMode)   signal('participant_mode_overridden', { mode })
+    const activeCharacters = characters.filter(c => c.name || c.gender !== 'unspecified' || c.traits?.length || c.role)
+
+    if (activeSpark)                signal('spark_selected',             { spark: activeSpark })
+    if (activeCharacters.length)    signal('characters_configured',      { count: activeCharacters.length })
+    if (pace !== 2)                 signal('pace_selected',              { pace })
+    if (specificDetail.trim())      signal('specific_detail_used',       {})
+    if (tonightsWant.trim())        signal('tonights_want_used',         {})
+    if (mode !== defaultMode)       signal('participant_mode_overridden', { mode })
+    if (mode === 'voyeur' && activePosition) signal('voyeur_context_used', { channel: perceptualChannel })
+    if (mode === 'alone')           signal('alone_mode_used',            { focus: aloneFocus, discovery_risk: discoveryRisk })
+
+    const voyeurContext = mode === 'voyeur' ? {
+      watcher_position:        activePosition ?? 'nearby, unnoticed',
+      perceptual_channel:      perceptualChannel,
+      relationship_to_watched: activeRelationship ?? "someone you don't know well",
+      interior_state:          interiorState.length ? interiorState : ['an illicit thrill'],
+    } : undefined
+
+    const aloneContext: AloneContext | undefined = mode === 'alone'
+      ? { focus: aloneFocus, discovery_risk: discoveryRisk }
+      : undefined
 
     onConfirm({
       ...baseParams,
       spark:                     activeSpark,
-      character_override:        (name || traits.length) ? { name: name.trim() || undefined, traits: traits.length ? traits : undefined } : undefined,
+      characters:                mode !== 'alone' && activeCharacters.length ? activeCharacters : undefined,
       pace,
       specific_detail:           specificDetail.trim() || undefined,
       tonights_want:             tonightsWant.trim() || undefined,
       participant_mode_override: mode !== defaultMode ? mode : undefined,
+      voyeur_context:            voyeurContext,
+      alone_context:             aloneContext,
     })
   }
 
@@ -123,13 +238,15 @@ export function PreGenerationPanel({
     }).catch(() => {})
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const rosterLabel = mode === 'participant' ? 'Who\'s with you' : 'Who you\'re watching'
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/30" onClick={onSkip} />
 
-      {/* Sheet */}
-      <div className="relative w-full max-w-lg bg-white border-t border-gray-200 rounded-t-2xl overflow-y-auto max-h-[92dvh] animate-fade-up">
+      <div data-lenis-prevent className="relative w-full max-w-lg bg-white border-t border-gray-200 rounded-t-2xl animate-fade-up" style={{ maxHeight: '90vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div className="px-6 pt-5 pb-8 space-y-7">
 
           {/* Handle */}
@@ -143,25 +260,178 @@ export function PreGenerationPanel({
             <p className="text-gray-400 text-xs tracking-wide">All optional — skip anything</p>
           </div>
 
-          {/* Participant / Voyeur toggle */}
+          {/* Mode toggle — 3 way */}
           <div className="space-y-2">
             <p className="text-gray-500 text-xs tracking-widest uppercase">You are</p>
             <div className="flex border border-gray-200 rounded-sm overflow-hidden">
-              {(['participant', 'voyeur'] as const).map(m => (
+              {([
+                { value: 'participant', label: 'In this story'      },
+                { value: 'voyeur',      label: 'Watching it unfold' },
+                { value: 'alone',       label: 'Alone'              },
+              ] as { value: ParticipantMode; label: string }[]).map(m => (
                 <button
-                  key={m}
-                  onClick={() => setMode(m)}
+                  key={m.value}
+                  onClick={() => setMode(m.value)}
                   className={`flex-1 py-3 text-sm transition-colors duration-200 ${
-                    mode === m
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-500 hover:text-gray-800'
+                    mode === m.value ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
-                  {m === 'participant' ? 'In this story' : 'Watching it unfold'}
+                  {m.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* ── VOYEUR CONTEXT (only in voyeur mode) ───────────────────────── */}
+          {mode === 'voyeur' && (
+            <div className="space-y-5 border-l-2 border-gray-100 pl-4">
+
+              {/* Watcher position */}
+              <div className="space-y-2">
+                <p className="text-gray-500 text-xs tracking-widest uppercase">Where are you?</p>
+                <div className="flex flex-wrap gap-2">
+                  {WATCHER_POSITIONS.map(pos => (
+                    <button
+                      key={pos}
+                      onClick={() => { setWatcherPosition(prev => prev === pos ? '' : pos); setWatcherPositionFree('') }}
+                      className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
+                        watcherPosition === pos
+                          ? 'border-gray-900 text-gray-900 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={watcherPositionFree}
+                  onChange={e => { setWatcherPositionFree(e.target.value); setWatcherPosition('') }}
+                  placeholder="or describe your position…"
+                  className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-sm text-gray-800 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+                />
+              </div>
+
+              {/* Perceptual channel */}
+              <div className="space-y-2">
+                <p className="text-gray-500 text-xs tracking-widest uppercase">What can you perceive?</p>
+                <div className="space-y-1.5">
+                  {PERCEPTUAL_CHANNELS.map(ch => (
+                    <button
+                      key={ch.value}
+                      onClick={() => setPerceptualChannel(ch.value)}
+                      className={`w-full text-left px-3 py-2 text-xs border rounded-sm transition-colors duration-200 ${
+                        perceptualChannel === ch.value
+                          ? 'border-gray-900 text-gray-900 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Relationship */}
+              <div className="space-y-2">
+                <p className="text-gray-500 text-xs tracking-widest uppercase">Who are they to you?</p>
+                <div className="flex flex-wrap gap-2">
+                  {RELATIONSHIPS.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => { setRelationship(prev => prev === r ? '' : r); setRelationshipFree('') }}
+                      className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
+                        relationship === r
+                          ? 'border-gray-900 text-gray-900 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={relationshipFree}
+                  onChange={e => { setRelationshipFree(e.target.value); setRelationship('') }}
+                  placeholder="or describe the relationship…"
+                  className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-sm text-gray-800 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+                />
+              </div>
+
+              {/* Interior state */}
+              <div className="space-y-2">
+                <p className="text-gray-500 text-xs tracking-widest uppercase">How does watching make you feel?</p>
+                <div className="flex flex-wrap gap-2">
+                  {INTERIOR_STATES.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => toggleInteriorState(s)}
+                      disabled={!interiorState.includes(s) && interiorState.length >= 2}
+                      className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 disabled:opacity-30 ${
+                        interiorState.includes(s)
+                          ? 'border-gray-900 text-gray-900 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                {interiorState.length === 2 && (
+                  <p className="text-gray-300 text-xs">max 2 selected</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── ALONE CONTEXT (only in alone mode) ─────────────────────────── */}
+          {mode === 'alone' && (
+            <div className="space-y-5 border-l-2 border-gray-100 pl-4">
+
+              {/* Focus */}
+              <div className="space-y-2">
+                <p className="text-gray-500 text-xs tracking-widest uppercase">What's the scene?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {ALONE_FOCUS_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setAloneFocus(opt.value)}
+                      className={`py-3 border rounded-sm text-center transition-colors duration-200 ${
+                        aloneFocus === opt.value ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      <p className={`text-xs font-medium ${aloneFocus === opt.value ? 'text-gray-900' : 'text-gray-500'}`}>
+                        {opt.label}
+                      </p>
+                      <p className="text-gray-400 text-[10px] mt-0.5">{opt.sub}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discovery risk */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-xs tracking-widest uppercase">Risk of discovery</p>
+                  <p className="text-gray-400 text-[10px] mt-0.5">
+                    {discoveryRisk ? 'someone could walk in — adds tension' : 'completely private'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDiscoveryRisk(r => !r)}
+                  className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${
+                    discoveryRisk ? 'bg-gray-900' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
+                    discoveryRisk ? 'translate-x-4' : ''
+                  }`} />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Spark */}
           <div className="space-y-2">
@@ -228,9 +498,7 @@ export function PreGenerationPanel({
                   key={opt.value}
                   onClick={() => setPace(opt.value)}
                   className={`flex-1 py-3 border rounded-sm text-center transition-colors duration-200 ${
-                    pace === opt.value
-                      ? 'border-gray-900 bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-400'
+                    pace === opt.value ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'
                   }`}
                 >
                   <p className={`text-xs font-medium ${pace === opt.value ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -242,47 +510,177 @@ export function PreGenerationPanel({
             </div>
           </div>
 
-          {/* Today's other character */}
-          <div className="space-y-2">
+          {/* Character roster — hidden in alone mode */}
+          {mode !== 'alone' && <div className="space-y-2">
             <button
-              onClick={() => setShowCharacter(s => !s)}
+              onClick={() => setShowCharacters(s => !s)}
               className="flex items-center justify-between w-full text-left"
             >
-              <p className="text-gray-500 text-xs tracking-widest uppercase">Today's other character</p>
-              <span className="text-gray-300 text-xs">{showCharacter ? '−' : '+'}</span>
+              <p className="text-gray-500 text-xs tracking-widest uppercase">{rosterLabel}</p>
+              <span className="text-gray-300 text-xs">{showCharacters ? '−' : '+'}</span>
             </button>
 
-            {showCharacter && (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="his name (optional)…"
-                  className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-sm text-gray-800 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
-                />
-                <div className="flex flex-wrap gap-2">
-                  {TRAITS.map(t => (
+            {showCharacters && (
+              <div className="space-y-5">
+                {characters.map((char, idx) => (
+                  <div key={char.id} className="space-y-3 border-l-2 border-gray-100 pl-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-gray-400 text-xs">Character {idx + 1}</p>
+                      {characters.length > 1 && (
+                        <button
+                          onClick={() => removeCharacter(char.id)}
+                          className="text-gray-300 text-xs hover:text-gray-500 transition-colors"
+                        >
+                          remove
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Name */}
+                    <input
+                      type="text"
+                      value={char.name ?? ''}
+                      onChange={e => updateCharacter(char.id, { name: e.target.value || undefined })}
+                      placeholder="name (optional)…"
+                      className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-sm text-gray-800 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+                    />
+
+                    {/* Gender */}
+                    <div className="flex gap-2">
+                      {(['man', 'woman', 'unspecified'] as const).map(g => (
+                        <button
+                          key={g}
+                          onClick={() => updateCharacter(char.id, { gender: g })}
+                          className={`flex-1 py-2 text-xs border rounded-sm transition-colors duration-200 ${
+                            (char.gender ?? 'unspecified') === g
+                              ? 'border-gray-900 text-gray-900 bg-gray-50'
+                              : 'border-gray-200 text-gray-400 hover:border-gray-400'
+                          }`}
+                        >
+                          {g === 'unspecified' ? 'story decides' : g}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Traits */}
+                    <div className="flex flex-wrap gap-2">
+                      {TRAITS.map(t => (
+                        <button
+                          key={t}
+                          onClick={() => toggleTrait(char.id, t)}
+                          disabled={!char.traits?.includes(t) && (char.traits?.length ?? 0) >= 2}
+                          className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 disabled:opacity-30 ${
+                            char.traits?.includes(t)
+                              ? 'border-gray-900 text-gray-900 bg-gray-50'
+                              : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    {(char.traits?.length ?? 0) === 2 && (
+                      <p className="text-gray-300 text-xs">max 2 traits selected</p>
+                    )}
+
+                    {/* Role picker */}
+                    <div className="space-y-2 pt-1">
+                      <p className="text-gray-400 text-[10px] tracking-widest uppercase">Role (optional)</p>
+                      {char.role && (
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1.5 text-xs border border-gray-900 text-gray-900 bg-gray-50 rounded-sm">
+                            {char.role}
+                          </span>
+                          <button
+                            onClick={() => updateCharacter(char.id, { role: undefined })}
+                            className="text-gray-300 text-xs hover:text-gray-500 transition-colors"
+                          >
+                            clear
+                          </button>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {[
+                          { label: 'Established relationship', roles: ROLES_ESTABLISHED },
+                          { label: 'Service / pretext',        roles: ROLES_SERVICE     },
+                          { label: 'Proximity',                roles: ROLES_PROXIMITY   },
+                        ].map(group => (
+                          <div key={group.label} className="space-y-1">
+                            <p className="text-gray-300 text-[10px]">{group.label}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {group.roles.map(r => (
+                                <button
+                                  key={r}
+                                  onClick={() => updateCharacter(char.id, { role: char.role === r ? undefined : r })}
+                                  className={`px-2.5 py-1 text-xs border rounded-sm transition-colors duration-200 ${
+                                    char.role === r
+                                      ? 'border-gray-900 text-gray-900 bg-gray-50'
+                                      : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                                  }`}
+                                >
+                                  {r}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Transgressive proximity — one tap further */}
+                        <button
+                          onClick={() => setShowTransgressiveRoles(prev => ({ ...prev, [char.id]: !prev[char.id] }))}
+                          className="text-gray-400 text-xs hover:text-gray-600 transition-colors pt-0.5"
+                        >
+                          {showTransgressiveRoles[char.id] ? '− fewer roles' : '+ explore more roles'}
+                        </button>
+                        {showTransgressiveRoles[char.id] && (
+                          <div className="space-y-1">
+                            <p className="text-gray-300 text-[10px]">Transgressive proximity</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ROLES_TRANSGRESSIVE.map(r => (
+                                <button
+                                  key={r}
+                                  onClick={() => updateCharacter(char.id, { role: char.role === r ? undefined : r })}
+                                  className={`px-2.5 py-1 text-xs border rounded-sm transition-colors duration-200 ${
+                                    char.role === r
+                                      ? 'border-gray-900 text-gray-900 bg-gray-50'
+                                      : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                                  }`}
+                                >
+                                  {r}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={!ROLES_ESTABLISHED.concat(ROLES_SERVICE, ROLES_PROXIMITY, ROLES_TRANSGRESSIVE).includes(char.role ?? '') ? (char.role ?? '') : ''}
+                          onChange={e => updateCharacter(char.id, { role: e.target.value || undefined })}
+                          placeholder="or type a role…"
+                          className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-xs text-gray-800 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {characters.length < 4 && (
+                  <div className="space-y-1">
                     <button
-                      key={t}
-                      onClick={() => toggleTrait(t)}
-                      disabled={!traits.includes(t) && traits.length >= 2}
-                      className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 disabled:opacity-30 ${
-                        traits.includes(t)
-                          ? 'border-gray-900 text-gray-900 bg-gray-50'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
-                      }`}
+                      onClick={addCharacter}
+                      className="text-gray-400 text-xs border border-dashed border-gray-200 px-3 py-1.5 rounded-sm hover:border-gray-400 hover:text-gray-600 transition-colors duration-200"
                     >
-                      {t}
+                      + add another character
                     </button>
-                  ))}
-                </div>
-                {traits.length === 2 && (
-                  <p className="text-gray-300 text-xs">max 2 traits selected</p>
+                    {characters.length >= 2 && baseParams.length_mins < 10 && (
+                      <p className="text-gray-300 text-[10px]">
+                        longer Yearns work better with more characters
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Specific detail */}
           <div className="space-y-2">

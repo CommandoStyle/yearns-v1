@@ -7,6 +7,16 @@ import {
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser'
 import { createBrowserClient } from '@/lib/supabase'
+import type { SupportedLanguage } from '@/lib/prompt-engine'
+
+const LANGUAGES: { key: SupportedLanguage; label: string; native: string }[] = [
+  { key: 'en', label: 'English',  native: 'English'  },
+  { key: 'fr', label: 'French',   native: 'Français' },
+  { key: 'it', label: 'Italian',  native: 'Italiano' },
+  { key: 'ja', label: 'Japanese', native: '日本語'   },
+  { key: 'es', label: 'Spanish',  native: 'Español'  },
+  { key: 'de', label: 'German',   native: 'Deutsch'  },
+]
 
 interface Credential {
   id:           string
@@ -25,11 +35,14 @@ export default function SettingsPage() {
   const [currentPw,      setCurrentPw]      = useState('')
   const [newPw,          setNewPw]          = useState('')
   const [pwErr,          setPwErr]          = useState('')
+  const [language,       setLanguage]       = useState<SupportedLanguage>('en')
+  const [langStage,      setLangStage]      = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
 
   const supportsPasskeys = typeof window !== 'undefined' && browserSupportsWebAuthn()
 
   useEffect(() => {
     loadCredentials()
+    loadLanguage()
   }, [])
 
   async function loadCredentials() {
@@ -41,6 +54,39 @@ export default function SettingsPage() {
       .order('created_at', { ascending: false })
     setCredentials(data ?? [])
     setLoadingCreds(false)
+  }
+
+  async function loadLanguage() {
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const { data } = await supabase
+      .from('desire_profiles')
+      .select('language')
+      .eq('user_id', session.user.id)
+      .single()
+    if (data?.language) setLanguage(data.language as SupportedLanguage)
+  }
+
+  async function saveLanguage(lang: SupportedLanguage) {
+    setLanguage(lang)
+    setLangStage('saving')
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('no session')
+      const res = await fetch('/api/profile', {
+        method:  'PATCH',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ language: lang }),
+      })
+      setLangStage(res.ok ? 'done' : 'error')
+    } catch {
+      setLangStage('error')
+    }
   }
 
   async function addPasskey() {
@@ -199,6 +245,38 @@ export default function SettingsPage() {
             {passwordStage === 'submitting' ? 'Updating…' : 'Update password'}
           </button>
         </form>
+      </section>
+
+      {/* Story language */}
+      <section className="space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">Story language</h2>
+          <p className="text-gray-900/40 text-sm">
+            Your Yearns will be written in this language.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {LANGUAGES.map(({ key, label, native }) => (
+            <button
+              key={key}
+              onClick={() => saveLanguage(key)}
+              className={`py-3 px-2 text-center border transition-all duration-200 ${
+                language === key
+                  ? 'border-gray-600/70 bg-gray-600/5'
+                  : 'border-gray-900/12 hover:border-gray-900/25'
+              }`}
+            >
+              <p className={`font-serif text-base ${language === key ? 'text-gray-600' : 'text-gray-900'}`}>
+                {native}
+              </p>
+              <p className="text-gray-900/35 text-[10px] mt-0.5">{label}</p>
+            </button>
+          ))}
+        </div>
+
+        {langStage === 'done'  && <p className="text-gray-900/50 text-sm">Language updated.</p>}
+        {langStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
       {/* Sign out */}

@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ExplicitnessDial } from './ExplicitnessDial'
 import type { YearnState } from '@/hooks/useYearn'
 import type { ExplicitnessLevel } from '@/lib/prompt-engine'
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'pro_required'
 
 interface StoryReaderProps {
   state:                YearnState
@@ -11,6 +13,14 @@ interface StoryReaderProps {
   onReset:              () => void
   onAdjustExplicitness: (level: ExplicitnessLevel) => void
   currentExplicitness:  ExplicitnessLevel
+  // Save support
+  authToken:            string | null
+  isPro:                boolean
+  generationMeta?: {
+    setting?:       string
+    explicitness?:  number
+    length_mins?:   number
+  }
 }
 
 export function StoryReader({
@@ -19,8 +29,42 @@ export function StoryReader({
   onReset,
   onAdjustExplicitness,
   currentExplicitness,
+  authToken,
+  isPro,
+  generationMeta,
 }: StoryReaderProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+
+  async function handleSave() {
+    if (saveStatus === 'saving' || saveStatus === 'saved') return
+    if (!isPro) { setSaveStatus('pro_required'); return }
+    if (!authToken || !state.text) return
+
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/yearns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({
+          text:           state.text,
+          word_count:     state.wordCount,
+          prompt_version: state.promptVersion,
+          setting:        generationMeta?.setting,
+          explicitness:   generationMeta?.explicitness,
+          length_mins:    generationMeta?.length_mins,
+        }),
+      })
+      setSaveStatus(res.ok ? 'saved' : res.status === 402 ? 'pro_required' : 'error')
+    } catch {
+      setSaveStatus('error')
+    }
+  }
+
+  // Reset save status when a new story starts
+  useEffect(() => {
+    if (state.status === 'generating') setSaveStatus('idle')
+  }, [state.status])
 
   // Auto-scroll to bottom while generating
   useEffect(() => {
@@ -144,13 +188,29 @@ export function StoryReader({
                 compact
               />
               <div className="ml-auto flex items-center gap-3">
-                {/* Save — Pro feature, placeholder for now */}
                 <button
-                  disabled
-                  className="text-gray-900/20 text-xs tracking-widest uppercase cursor-not-allowed"
-                  title="Save — available in Pro"
+                  onClick={handleSave}
+                  disabled={saveStatus === 'saving' || saveStatus === 'saved'}
+                  title={!isPro ? 'Save — available in Pro' : undefined}
+                  className={`text-xs tracking-widest uppercase transition-colors duration-200 ${
+                    saveStatus === 'saved'
+                      ? 'text-gray-900/50 cursor-default'
+                      : saveStatus === 'saving'
+                      ? 'text-gray-900/30 cursor-default'
+                      : saveStatus === 'pro_required'
+                      ? 'text-amber-600/70 hover:text-amber-600'
+                      : saveStatus === 'error'
+                      ? 'text-red-500/70 hover:text-red-500'
+                      : isPro
+                      ? 'text-gray-900/50 hover:text-gray-900/80'
+                      : 'text-gray-900/25 hover:text-gray-900/40'
+                  }`}
                 >
-                  Save
+                  {saveStatus === 'saving'      ? 'Saving…'
+                   : saveStatus === 'saved'     ? 'Saved'
+                   : saveStatus === 'error'     ? 'Error — retry'
+                   : saveStatus === 'pro_required' ? 'Pro only'
+                   : 'Save'}
                 </button>
                 <button
                   onClick={onReset}

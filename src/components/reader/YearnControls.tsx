@@ -58,6 +58,12 @@ export function YearnControls({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16">
+      <a
+        href="/settings"
+        className="fixed top-4 right-5 text-gray-900/20 text-xs tracking-widest uppercase hover:text-gray-900/50 transition-colors duration-200"
+      >
+        Settings
+      </a>
       <div className="w-full max-w-md space-y-10 animate-fade-up">
 
         {/* Brand */}

@@ -26,7 +26,7 @@ interface InputFilterParams {
 
 export function inputFilter(params: InputFilterParams): string | null {
   // Language whitelist
-  const validLanguages: SupportedLanguage[] = ['en', 'fr', 'it', 'ja']
+  const validLanguages: SupportedLanguage[] = ['en', 'fr', 'it', 'ja', 'es', 'de']
   if (params.language && !validLanguages.includes(params.language)) {
     return 'unsupported_language'
   }

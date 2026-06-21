@@ -8,7 +8,7 @@ export interface ProfilePatch {
   emotional_register?:   string[]
   desire_targets?:       string
   explicitness_default?: number
-  participant_mode?:     'participant' | 'voyeur'
+  participant_mode?:     import('@/lib/prompt-engine').ParticipantMode
   hard_limits?:          string[]
   three_words?:          [string, string, string]
   style_references?:     string[]

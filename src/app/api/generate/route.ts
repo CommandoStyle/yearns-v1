@@ -77,15 +77,17 @@ interface GenerateBody {
   explicitness: ExplicitnessLevel
   setting: SettingType
   length_mins: number
-  participant_mode?: 'participant' | 'voyeur'
+  participant_mode?: import('@/lib/prompt-engine').ParticipantMode
   continuation_id?: string
   language?: SupportedLanguage
   spark?: string
-  character_override?: { name?: string; traits?: string[] }
+  characters?: import('@/lib/prompt-engine').CharacterConfig[]
   pace?: 1 | 2 | 3
   specific_detail?: string
   tonights_want?: string
-  participant_mode_override?: 'participant' | 'voyeur'
+  participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
+  voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
+  alone_context?: import('@/lib/prompt-engine').AloneContext
 }
 
 function validateBody(body: unknown): GenerateBody | null {
@@ -99,24 +101,53 @@ function validateBody(body: unknown): GenerateBody | null {
     explicitness:              b.explicitness as ExplicitnessLevel,
     setting:                   b.setting as SettingType,
     length_mins:               b.length_mins,
-    participant_mode:          b.participant_mode as 'participant' | 'voyeur' | undefined,
+    participant_mode:          b.participant_mode as import('@/lib/prompt-engine').ParticipantMode | undefined,
     continuation_id:           typeof b.continuation_id === 'string' ? b.continuation_id : undefined,
     language:                  b.language as SupportedLanguage | undefined,
     spark:                     typeof b.spark === 'string' ? b.spark.slice(0, 200) : undefined,
-    character_override:        isCharacterOverride(b.character_override) ? b.character_override : undefined,
+    characters:                Array.isArray(b.characters) ? sanitiseCharacters(b.characters) : undefined,
     pace:                      [1,2,3].includes(b.pace as number) ? b.pace as 1|2|3 : undefined,
     specific_detail:           typeof b.specific_detail === 'string' ? b.specific_detail.slice(0, 60) : undefined,
     tonights_want:             typeof b.tonights_want === 'string' ? b.tonights_want.slice(0, 120) : undefined,
-    participant_mode_override: b.participant_mode_override as 'participant' | 'voyeur' | undefined,
+    participant_mode_override: b.participant_mode_override as import('@/lib/prompt-engine').ParticipantMode | undefined,
+    voyeur_context:            isVoyeurContext(b.voyeur_context) ? b.voyeur_context : undefined,
+    alone_context:             isAloneContext(b.alone_context) ? b.alone_context : undefined,
   }
 }
 
-function isCharacterOverride(v: unknown): v is { name?: string; traits?: string[] } {
+function sanitiseCharacters(arr: unknown[]): import('@/lib/prompt-engine').CharacterConfig[] {
+  return arr.slice(0, 4).flatMap(item => {
+    if (!item || typeof item !== 'object') return []
+    const c = item as Record<string, unknown>
+    return [{
+      id:     typeof c.id === 'string' ? c.id : '',
+      name:   typeof c.name === 'string' ? c.name.slice(0, 60) : undefined,
+      gender: ['man','woman','unspecified'].includes(c.gender as string)
+                ? c.gender as 'man'|'woman'|'unspecified'
+                : undefined,
+      traits: Array.isArray(c.traits)
+                ? (c.traits as unknown[]).filter((t): t is string => typeof t === 'string').slice(0, 2)
+                : undefined,
+      role: typeof c.role === 'string' ? c.role.slice(0, 80) : undefined,
+    }]
+  })
+}
+
+function isAloneContext(v: unknown): v is import('@/lib/prompt-engine').AloneContext {
   if (!v || typeof v !== 'object') return false
   const o = v as Record<string, unknown>
-  if (o.name !== undefined && typeof o.name !== 'string') return false
-  if (o.traits !== undefined && !Array.isArray(o.traits)) return false
-  return true
+  const validFocus = ['solitude', 'object', 'watching_or_reading', 'memory']
+  return validFocus.includes(o.focus as string)
+}
+
+function isVoyeurContext(v: unknown): v is import('@/lib/prompt-engine').VoyeurContext {
+  if (!v || typeof v !== 'object') return false
+  const o = v as Record<string, unknown>
+  const validChannels = ['full_sight','sound_only','fragments','peripheral']
+  return typeof o.watcher_position === 'string'
+      && validChannels.includes(o.perceptual_channel as string)
+      && typeof o.relationship_to_watched === 'string'
+      && Array.isArray(o.interior_state)
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -193,20 +224,47 @@ export async function POST(request: NextRequest): Promise<Response> {
     prompt_version:            promptVersion,
     language:                  body.language,
     spark:                     body.spark,
-    character_override:        body.character_override,
+    characters:                body.characters,
     pace:                      body.pace,
     specific_detail:           body.specific_detail,
     tonights_want:             body.tonights_want,
     participant_mode_override: body.participant_mode_override,
+    voyeur_context:            body.voyeur_context,
+    alone_context:             body.alone_context,
   }
 
+  // Classify character roles for logging — log category only, never free-text content
+  const roleCategories = body.characters?.flatMap(c => {
+    if (!c.role) return []
+    const r = c.role.toLowerCase()
+    if (['husband', 'boyfriend', 'wife', 'girlfriend', 'long-term partner'].some(v => r.includes(v))) return ['established_relationship']
+    if (['plumber', 'personal trainer', 'masseuse', 'real estate agent', 'delivery driver'].some(v => r.includes(v))) return ['service_pretext']
+    if (['neighbor', 'coworker', 'boss', 'stranger'].some(v => r.includes(v))) return ['proximity_circumstantial']
+    if (["friend's husband", "friend's wife", 'ex', 'best friend'].some(v => r.includes(v))) return ['transgressive_proximity']
+    return ['custom']
+  }) ?? []
+  const uniqueRoleCategories = Array.from(new Set(roleCategories))
+
   const perStoryOverrides = {
-    ...(body.spark               && { spark: true }),
-    ...(body.character_override  && { character_override: true }),
-    ...(body.pace                && { pace: body.pace }),
-    ...(body.specific_detail     && { specific_detail: true }),
-    ...(body.tonights_want       && { tonights_want: true }),
+    ...(body.spark                     && { spark: true }),
+    ...(body.characters?.length        && {
+          character_count: body.characters.length,
+          character_genders: body.characters.map(c => c.gender ?? 'unspecified'),
+        }),
+    ...(uniqueRoleCategories.length    && { character_roles_used: uniqueRoleCategories }),
+    ...(body.pace                      && { pace: body.pace }),
+    ...(body.specific_detail           && { specific_detail: true }),
+    ...(body.tonights_want             && { tonights_want: true }),
     ...(body.participant_mode_override && { participant_override: body.participant_mode_override }),
+    ...(body.voyeur_context            && {
+          voyeur_context_used: true,
+          perceptual_channel: body.voyeur_context.perceptual_channel,
+        }),
+    ...(body.alone_context             && {
+          alone_context_used: true,
+          alone_focus: body.alone_context.focus,
+          alone_discovery_risk: body.alone_context.discovery_risk ?? false,
+        }),
   }
   const prompt = buildPrompt(genRequest)
 
@@ -269,7 +327,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       controller.close()
 
       // 14. Side effects (fire and forget — user is already reading)
-      await Promise.allSettled([
+      const [logResult] = await Promise.allSettled([
         logGeneration({
           user_id: userId, prompt_version: promptVersion,
           length_mins: body.length_mins, explicitness: body.explicitness,
@@ -289,6 +347,18 @@ export async function POST(request: NextRequest): Promise<Response> {
             })
           : Promise.resolve(),
       ])
+
+      // Upload story text to trainer-stories bucket for quality review queue
+      const storyId = logResult.status === 'fulfilled' ? logResult.value : null
+      if (storyId) {
+        supabase.storage
+          .from('trainer-stories')
+          .upload(`${storyId}.txt`, new Blob([fullText], { type: 'text/plain' }), {
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .catch(e => console.error('[yearns/generate] trainer-stories upload failed:', e.message))
+      }
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'

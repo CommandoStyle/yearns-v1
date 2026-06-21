@@ -62,7 +62,7 @@ export interface QueueItem {
   priority: number
   story_text: string     // fetched from Supabase Storage
   explicitness: 1 | 2 | 3 | 4
-  language: 'en' | 'fr' | 'it' | 'ja'
+  language: import('@/lib/prompt-engine').SupportedLanguage
   length_mins: number
   // Only present when blind_review = false (after submission)
   prompt_version?: string

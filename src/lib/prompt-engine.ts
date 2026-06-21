@@ -22,9 +22,10 @@ export type ExplicitnessLevel = 1 | 2 | 3 | 4
 // 3 = explicit   (sex described with clarity, nothing held back)
 // 4 = unrestricted (full range, user has confirmed this preference)
 
-export type ParticipantMode = 'participant' | 'voyeur'
+export type ParticipantMode = 'participant' | 'voyeur' | 'alone'
 // participant = user is protagonist, referred to by display_name
 // voyeur      = third-person camera, user is not in the story
+// alone       = no second character; scene is purely internal/sensory
 
 export type Genre =
   | 'contemporary'
@@ -71,7 +72,35 @@ export type SettingType =
   | 'workplace'
   | 'unknown'
 
-export type SupportedLanguage = 'en' | 'fr' | 'it' | 'ja'
+export type SupportedLanguage = 'en' | 'fr' | 'it' | 'ja' | 'es' | 'de'
+
+export interface CharacterConfig {
+  id: string                                        // client-generated, for UI list management
+  name?: string                                     // optional free text
+  gender?: 'man' | 'woman' | 'unspecified'          // unspecified = let model decide
+  traits?: string[]                                 // max 2 from curated list
+  role?: string                                     // curated pick or free text, optional
+}
+
+export interface AloneContext {
+  focus: 'solitude' | 'object' | 'watching_or_reading' | 'memory'
+  // solitude            = nothing but herself; pure internal/sensory experience
+  // object              = a toy or object is present and part of the scene
+  // watching_or_reading = consuming adult content/media as part of the scene
+  // memory              = scene is built around recalling a past experience
+  discovery_risk?: boolean
+  // false/undefined = completely private
+  // true            = somewhere she could plausibly be discovered — changes pacing and tension
+}
+
+export type PerceptualChannel = 'full_sight' | 'sound_only' | 'fragments' | 'peripheral'
+
+export interface VoyeurContext {
+  watcher_position: string                          // curated phrase or free text
+  perceptual_channel: PerceptualChannel
+  relationship_to_watched: string                   // curated phrase or free text
+  interior_state: string[]                          // max 2 from curated list
+}
 
 export interface GenerationRequest {
   profile: DesireProfile
@@ -85,14 +114,13 @@ export interface GenerationRequest {
   language?: SupportedLanguage
   // ── Per-story overrides (all optional — fall back to profile if absent) ──
   spark?: string                        // inciting moment phrase
-  character_override?: {
-    name?: string
-    traits?: string[]                   // max 2 from curated list
-  }
+  characters?: CharacterConfig[]        // 1–4 entries; replaces character_override
   pace?: 1 | 2 | 3                      // 1=lingering 2=building 3=inevitable
   specific_detail?: string              // max 60 chars — free text setting detail
   tonights_want?: string               // max 120 chars — overrides three_words emphasis
   participant_mode_override?: ParticipantMode  // per-story override, doesn't touch profile
+  voyeur_context?: VoyeurContext        // present only when mode is voyeur
+  alone_context?: AloneContext          // present only when mode is alone
 }
 
 export interface BuiltPrompt {
@@ -187,8 +215,16 @@ ABSOLUTE LIMITS — these override every other instruction in this prompt:
 `.trim()
 
 import { LLAMA_SUPPLEMENT } from '@/lib/llama-supplement'
+import { getLanguageRegister } from '@/lib/language-registers'
 
 // ─── Core assembler ───────────────────────────────────────────────────────────
+
+const PERCEPTUAL_CHANNEL_GUIDANCE: Record<PerceptualChannel, string> = {
+  full_sight: 'You can see everything clearly from your position. Describe visually with full clarity.',
+  sound_only: 'You cannot see what is happening. Everything must be conveyed through sound — voices, breathing, movement, the creak of furniture, the things sound implies but does not confirm. Do not describe visual details you could not perceive from this position. The imagination fills in what the ears suggest.',
+  fragments:  'Your view is partial — glimpses through a gap, a reflection, an interrupted line of sight. You piece together what is happening from fragments. The prose should feel assembled, incomplete in a way that heightens desire.',
+  peripheral: 'You are aware of them without directly watching — they are at the edge of your attention, your perception catching details without you intending to look. The prose should have the quality of something half-noticed and impossible to ignore.',
+}
 
 export function buildPrompt(req: GenerationRequest): BuiltPrompt {
   const {
@@ -200,10 +236,12 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     continuation_context,
     prompt_version,
     spark,
-    character_override,
+    characters,
     pace,
     specific_detail,
     tonights_want,
+    voyeur_context,
+    alone_context,
   } = req
 
   const lang = req.language ?? profile.language ?? 'en'
@@ -276,17 +314,16 @@ ${pacingGuidance}
     systemParts.push(LLAMA_SUPPLEMENT)
   }
 
-  // 6. Language
+  // 6. Language — curated register guidance (sits after craft standard + LLAMA_SUPPLEMENT
+  //    so it is the final calibration layer, freshest in the model's context)
   if (lang !== 'en') {
-    const langNames: Record<SupportedLanguage, string> = {
-      en: 'English', fr: 'French', it: 'Italian', ja: 'Japanese',
+    const register = getLanguageRegister(lang)
+    if (register) {
+      systemParts.push(register)
     }
-    systemParts.push(`
-LANGUAGE: Write entirely in ${langNames[lang]}. Do not mix languages.
-The erotic register, idiom, and cultural tone should be authentic to 
-${langNames[lang]}-language literary erotica — not a translation of 
-English conventions.
-    `.trim())
+    // If register is empty (shouldn't happen with a full Record, but defensive):
+    // fall through silently — the model will still produce the correct language
+    // from profile or request context.
   }
 
   // Output format — always last so it is freshest in context
@@ -333,40 +370,114 @@ ${secondaryFeel ? `Secondary: ${EMOTIONAL_REGISTER_GUIDANCE[secondaryFeel]}` : '
 SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to weave in naturally: "${specific_detail}" — incorporate this as lived texture, not a fact inserted out of context.` : ''}
   `.trim())
 
-  // D. Protagonist configuration
-  // display_name is set during onboarding. Fall back to 'her' for edge cases
-  // (e.g. voyeur mode, or a generation triggered before onboarding completes).
-  const name = profile.display_name?.trim() || 'her'
-  if (mode === 'participant') {
+  // D. Protagonist / watcher / alone framing
+  const displayName = profile.display_name?.trim() || 'her'
+
+  if (mode === 'alone') {
+    const focus = alone_context?.focus ?? 'solitude'
+    const discoveryRisk = alone_context?.discovery_risk ?? false
+
+    const focusLine =
+      focus === 'solitude'
+        ? 'Nothing else is needed. The experience is complete in itself — internal, sensory, hers alone.'
+        : focus === 'object'
+        ? 'An object or toy is present and part of the physical experience. Describe its role with the same specificity you would give a character — texture, weight, the particular way it is used.'
+        : focus === 'watching_or_reading'
+        ? 'She is engaging with adult content or media as part of this moment — describe her reactions and experience, not the content itself in detail. The focus stays on her, not on what she is consuming.'
+        : 'This scene is built from a memory she keeps returning to. Blend present sensation with recollection — let the remembered experience and the current moment intertwine.'
+
+    const discoveryLine = discoveryRisk
+      ? 'There is a real possibility of being discovered. This risk is part of the tension and should be felt throughout — heightened awareness, urgency, the specific thrill of "what if someone…" Do not actually have her get caught unless the user has indicated otherwise; the thrill of potential discovery is the point, not an actual interruption.'
+      : 'This is completely private. No risk of discovery — the focus is entirely internal and uninterrupted.'
+
     narrativeParts.push(`
-PROTAGONIST: The reader is the protagonist. Her name is ${name}. 
-Write in close third-person or second-person — she should feel that 
-this is happening to her, that ${name} is unmistakably her. 
+ALONE:
+
+This is a story about solitude, not absence. The reader is the entire scene — there is no one else, and the story should not gesture toward an implied missing partner. Write with full attention to physical sensation, internal narrative, and the specific texture of this private moment.
+
+${focusLine}
+
+${discoveryLine}
+    `.trim())
+  } else if (mode === 'participant') {
+    narrativeParts.push(`
+PROTAGONIST: The reader is the protagonist. Her name is ${displayName}.
+Write in close third-person or second-person — she should feel that
+this is happening to her, that ${displayName} is unmistakably her.
 Her interior experience is primary.
     `.trim())
   } else {
-    narrativeParts.push(`
-PROTAGONIST: Write in close third-person. The protagonist is a distinct 
-character — not the reader, but someone the reader can inhabit. 
-Give her interiority, specificity, and desire of her own.
-    `.trim())
+    // Voyeur mode: the reader is a watcher, not a character in the scene
+    if (voyeur_context) {
+      const channelGuidance = PERCEPTUAL_CHANNEL_GUIDANCE[voyeur_context.perceptual_channel]
+      narrativeParts.push(`
+THE WATCHER (this is the reader's position — they are NOT a character in the story):
+
+Position: ${voyeur_context.watcher_position}.
+
+What the watcher can perceive: ${channelGuidance}
+
+Their relationship to the people being watched: ${voyeur_context.relationship_to_watched}.
+
+How watching makes them feel: ${voyeur_context.interior_state.join(' and ')}.
+This feeling should colour every observation — the reader should feel this as THEIR experience of watching, not a neutral camera.
+
+CRITICAL: Never give the watcher a name, a body the watched characters can perceive, or dialogue. The watcher exists only as a perspective and a feeling. The watched characters do not know they are being observed and must never address or acknowledge the watcher.
+      `.trim())
+    } else {
+      narrativeParts.push(`
+THE WATCHER: The reader observes this scene from nearby, unnoticed. They are not a character — they have no name, no body the others can perceive. They watch with an illicit thrill and cannot look away. The watched characters do not know they are being observed.
+      `.trim())
+    }
   }
 
-  // E. Who she desires (character_override replaces desire_targets for this story)
-  if (character_override && (character_override.name || character_override.traits?.length)) {
-    const parts: string[] = []
-    if (character_override.name) parts.push(`His name is ${character_override.name}.`)
-    if (character_override.traits?.length) {
-      parts.push(`He is defined by: ${character_override.traits.join('; ')}.`)
-    }
-    parts.push('Build a specific person from these qualities — don\'t just note them.')
-    narrativeParts.push(`THE OTHER (for this story): ${parts.join(' ')}`.trim())
-  } else if (profile.desire_targets) {
+  // E. Character roster — who is with the protagonist (participant) or being watched (voyeur)
+  // Alone mode has no roster — skip entirely.
+  const hasRoster = mode !== 'alone' && characters && characters.length > 0
+  const rosterLabel = mode === 'participant' ? 'WHO IS WITH YOU' : 'WHO YOU ARE WATCHING'
+
+  if (hasRoster) {
+    const characterLines = characters!.map((c, i) => {
+      const namePart = c.name
+        ? `${c.name}`
+        : `(choose an appropriate name — vary across genders, origins, and languages; do not default to a narrow set)`
+      const genderPart = c.gender === 'unspecified' || !c.gender
+        ? 'Gender: your choice — make it specific and committed'
+        : `Gender: ${c.gender}`
+      const rolePart = c.role
+        ? `Role: ${c.role} — let this relationship/context inform the scene's setup, tension, and dialogue naturally. Don't over-explain the role in the narration; let it shape behaviour and dynamic instead.`
+        : ''
+      const traitPart = c.traits?.length
+        ? `Defining traits: ${c.traits.join('; ')}`
+        : ''
+      return [
+        `Character ${i + 1}: ${namePart}`,
+        `  ${genderPart}`,
+        rolePart  ? `  ${rolePart}`  : '',
+        traitPart ? `  ${traitPart}` : '',
+      ].filter(Boolean).join('\n')
+    }).join('\n\n')
+
+    narrativeParts.push(`
+${rosterLabel}:
+
+${characterLines}
+
+These are specific people, not types. Give each one at least one unexpected, particular detail beyond what is listed above.
+    `.trim())
+  } else if (mode !== 'alone' && profile.desire_targets) {
+    // Fall back to profile-level desire_targets when no per-story roster
     narrativeParts.push(`
 THE OTHER: ${profile.desire_targets}
-Let this description guide the character — but add texture.
-A type is a starting point, not a character.
+Let this description guide the character — but add texture. A type is a starting point, not a character.
+
+NAMING: Vary character names across genders, origins, and languages. Do not default to a narrow set of names. Use names appropriate to the story's setting and the character's implied background.
     `.trim())
+  } else if (mode !== 'alone') {
+    // No roster, no profile targets — give naming guidance anyway
+    narrativeParts.push(
+      'NAMING: Vary character names across genders, origins, and languages. Do not default to a narrow set of names (avoid reusing the same small pool across stories).'
+    )
   }
 
   // E1. Tonight's want — highest-priority tone signal when present
