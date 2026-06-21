@@ -34,14 +34,15 @@ const MODELS = {
   // character voice, sensory specificity, narrative pacing.
   CLAUDE: 'claude-sonnet-4-6',
 
-  // Llama 3.1 70B via Together.ai — explicit tier (level 3).
-  // Good balance of quality and permissiveness. Instruction-following
-  // is strong enough for the layered system prompt structure.
-  LLAMA_70B: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+  // Llama 3.3 70B via Together.ai — explicit tier (level 3).
+  // Serverless (pay-per-token, no dedicated endpoint needed).
+  // 3.3 supersedes 3.1 70B — better instruction following and prose quality.
+  LLAMA_70B: 'meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo',
 
-  // Mixtral 8x22B via Together.ai — unrestricted tier (level 4).
-  // Higher ceiling for creative range. Slower and more expensive than Llama.
-  MIXTRAL: 'mistralai/Mixtral-8x22B-Instruct-v0.1',
+  // Llama 3.1 405B via Together.ai — unrestricted tier (level 4).
+  // Serverless. Largest available serverless model — higher creative ceiling.
+  // Replaces Mixtral 8x22B which moved to dedicated-endpoint-only.
+  MIXTRAL: 'meta-llama/Llama-3.1-405B-Instruct-Turbo',
 } as const
 
 type ModelKey = keyof typeof MODELS
