@@ -36,13 +36,11 @@ const MODELS = {
 
   // Llama 3.3 70B via Together.ai — explicit tier (level 3).
   // Serverless (pay-per-token, no dedicated endpoint needed).
-  // 3.3 supersedes 3.1 70B — better instruction following and prose quality.
-  LLAMA_70B: 'meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo',
+  LLAMA_70B: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
 
-  // Llama 3.1 405B via Together.ai — unrestricted tier (level 4).
-  // Serverless. Largest available serverless model — higher creative ceiling.
-  // Replaces Mixtral 8x22B which moved to dedicated-endpoint-only.
-  MIXTRAL: 'meta-llama/Llama-3.1-405B-Instruct-Turbo',
+  // Llama 3.3 70B also covers level 4 for now — upgrade to a larger
+  // serverless model (e.g. Qwen3-235B) once level 3 is confirmed working.
+  MIXTRAL: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
 } as const
 
 type ModelKey = keyof typeof MODELS
