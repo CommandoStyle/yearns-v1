@@ -101,7 +101,7 @@ export function StoryReader({
                 }
                 .yn-word {
                   display: inline;
-                  animation: yn-word-in 180ms ease-out both;
+                  animation: yn-word-in 200ms ease-out both;
                 }
               `}</style>
               <div data-yn-build="v8">
@@ -126,9 +126,6 @@ export function StoryReader({
                           {j > 0 && ' '}{word}
                         </span>
                       ))}
-                      {isGenerating && i === paragraphs.length - 1 && (
-                        <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
-                      )}
                     </div>
                   )
                 })}
