@@ -214,7 +214,7 @@ ABSOLUTE LIMITS — these override every other instruction in this prompt:
    described are real or that real people are involved.
 `.trim()
 
-import { LLAMA_SUPPLEMENT } from '@/lib/llama-supplement'
+import { CRAFT_SUPPLEMENT } from '@/lib/craft-correction-supplement'
 import { getLanguageRegister } from '@/lib/language-registers'
 
 // ─── Core assembler ───────────────────────────────────────────────────────────
@@ -306,13 +306,12 @@ feel desire, not just read about it.
 ${pacingGuidance}
   `.trim())
 
-  // 5. Llama supplement — explicit tiers only
-  // Compensates for known Llama failure modes (emotional flatness, perspective
-  // drift, cliché vocab, rushed pacing). Stacks after craft standard so it
-  // is freshest in context at generation time.
-  if (explicitness >= 3) {
-    systemParts.push(LLAMA_SUPPLEMENT)
-  }
+  // 5. Craft correction supplement — ALL tiers (post ADR-002 behavioural change)
+  // Previously injected only at tiers 3-4 when Claude handled 1-2. Now Qwen
+  // generates all tiers, so the supplement applies universally. Content is
+  // general craft principles that transfer across models; a trainer-driven
+  // review to calibrate specifically for Qwen's tendencies is pending.
+  systemParts.push(CRAFT_SUPPLEMENT)
 
   // 6. Language — curated register guidance (sits after craft standard + LLAMA_SUPPLEMENT
   //    so it is the final calibration layer, freshest in the model's context)

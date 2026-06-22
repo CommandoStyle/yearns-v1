@@ -25,7 +25,8 @@ Think: Tom Ford perfume ad aesthetic, Playfair Display typography, deep plum pal
 | Framework | Next.js 14 App Router | SSR for marketing, API routes, edge runtime |
 | Hosting | Vercel | Zero-config, edge network, SSE support |
 | Database + Auth | Supabase | Postgres + RLS + Auth + Storage in one |
-| AI | Anthropic Claude claude-sonnet-4-6 | Best literary quality, streaming |
+| AI (generation) | Qwen3-235B-A22B via Together.ai | Primary engine, all tiers 1-4 — see ADR-002 |
+| AI (offline/corpus) | Anthropic Claude claude-sonnet-4-6 | Gold-corpus seed content authorship only, not in runtime path — see ADR-002 |
 | Payments (primary) | Stripe | Subscriptions, webhooks |
 | Payments (backup) | CCBill | Adult content processor — always set up in parallel |
 | Age verification | Veriff | UK OSA compliant, webhook-based, GDPR safe |
@@ -36,6 +37,17 @@ Think: Tom Ford perfume ad aesthetic, Playfair Display typography, deep plum pal
 | Error tracking | Sentry | Scrub PII from payloads |
 | Styling | Tailwind CSS + shadcn/ui | Override heavily for brand |
 | Typography | Playfair Display (Google Fonts) | All story text + brand headings |
+
+---
+
+## Architecture decisions
+
+Key decisions are documented as ADRs in `/docs/` (or alongside this file):
+
+- **ADR-002** (`adr-002-qwen-primary-engine.md`) — Qwen as primary generation
+  engine, Claude offline-only. Read this before touching model-router.ts or
+  anything that affects the generation path. Contains the policy boundary on
+  Claude's offline gold-corpus role that must not drift.
 
 ---
 
@@ -65,11 +77,17 @@ Think: Tom Ford perfume ad aesthetic, Playfair Display typography, deep plum pal
    Do NOT use Node.js `stream` or `EventEmitter`. EventSource on the client
    does not support POST — use `fetch` + `response.body.getReader()`.
 
-7. **Prompt versions are loaded from DB, not hardcoded** — the `prompt_versions`
+7. **Claude is not in the live generation path** — `model-router.ts` routes all
+   tiers to Qwen. Claude's role is offline gold-corpus authorship only (tier 1-2
+   reference stories, manual process). Do not re-add Claude to the runtime path
+   without re-examining ADR-002. The Anthropic SDK and API key remain in the
+   project for the offline use case — do not remove them.
+
+9. **Prompt versions are loaded from DB, not hardcoded** — the `prompt_versions`
    table controls which prompt template is active. Never hardcode prompt text
    in route handlers. Always load from `buildPrompt()` in `/lib/prompt-engine.ts`.
 
-8. **CCBill must be set up alongside Stripe from day one** — not later.
+10. **CCBill must be set up alongside Stripe from day one** — not later.
    Adult content merchants get dropped without warning. Both processors
    must be live before launch.
 

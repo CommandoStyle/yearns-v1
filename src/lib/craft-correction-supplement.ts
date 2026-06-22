@@ -1,13 +1,27 @@
 /**
- * Yearns — LLAMA_SUPPLEMENT
- * Additional system prompt instructions injected when explicitness >= 3
- * (i.e. when the Together.ai models are handling generation).
+ * Yearns — Craft correction supplement (post ADR-002)
  *
- * Purpose: Close the prose quality gap between Claude (tiers 1-2) and
- * Llama/Mixtral (tiers 3-4) by compensating for known model tendencies.
+ * Previously named llama-supplement.ts / LLAMA_SUPPLEMENT. Renamed to a
+ * model-neutral name because Qwen now generates all four tiers — this
+ * supplement is no longer Llama-specific.
+ *
+ * Purpose: Close the prose quality gap between Qwen output and the Claude
+ * literary baseline established during the blind evaluation. Applied to
+ * ALL explicitness tiers (1-4) post ADR-002 — previously only injected
+ * at tiers 3-4 when Claude handled tiers 1-2.
+ *
+ * TRAINER REVIEW PENDING — content not yet calibrated for Qwen:
+ * The instructions below were originally written against Llama's specific
+ * failure modes. Qwen's failure modes from the blind evaluation differed:
+ * occasional "reach for effect" phrasing and unearned abstraction, rather
+ * than Llama's repetition/flatness issues. A trainer-driven review pass
+ * is needed to identify which instructions Qwen already handles natively
+ * (candidates for trimming) and which Qwen-specific tendencies need new
+ * corrections. Do not treat the current content as Qwen-calibrated until
+ * that review has happened.
  *
  * Design philosophy:
- *   - Every instruction targets a specific, observed Llama failure mode.
+ *   - Every instruction targets a specific, observed failure mode.
  *   - Instructions are written as positive directives ("do X") not just
  *     prohibitions ("don't do Y") — models respond better to positive framing.
  *   - The supplement stacks on top of the existing system prompt structure.
@@ -15,7 +29,7 @@
  *   - Version-controlled alongside prompt_versions. When the supplement changes,
  *     increment the prompt version.
  *
- * Failure modes being corrected (from trainer review + model research):
+ * Failure modes this was originally calibrated against (Llama):
  *   1. Emotional flatness — physicality without interiority
  *   2. Perspective drift — losing the protagonist's POV mid-scene
  *   3. Repetitive phrasing — same adjectives, same sentence structures
@@ -27,10 +41,11 @@
  */
 
 // ─── The supplement ───────────────────────────────────────────────────────────
-// Injected as the final section of the system prompt for levels 3-4.
-// Positioned last so it's freshest in the model's context at generation time.
+// Injected into the system prompt for all tiers (post ADR-002).
+// Positioned after the craft standard so it's freshest in the model's
+// context at generation time.
 
-export const LLAMA_SUPPLEMENT = `
+export const CRAFT_SUPPLEMENT = `
 PROSE QUALITY STANDARD — YEARNS LITERARY VOICE:
 
 You are writing for Yearns, a platform where literary quality is the product.
@@ -153,28 +168,11 @@ End in a detail. End in a sensation. End mid-thought, if that's honest.
 `.trim()
 
 // ─── Prompt engine integration ────────────────────────────────────────────────
-// Add this to prompt-engine.ts buildPrompt() function.
-// Replace the existing systemParts.join() with the version below.
-
-/**
- * INTEGRATION INSTRUCTIONS for prompt-engine.ts:
- *
- * 1. Import LLAMA_SUPPLEMENT at the top:
- *    import { LLAMA_SUPPLEMENT } from '@/lib/llama-supplement'
- *
- * 2. In buildPrompt(), after the craft standard section, add:
- *
- *    // 5. Llama supplement — explicit tiers only
- *    if (req.explicitness >= 3) {
- *      systemParts.push(LLAMA_SUPPLEMENT)
- *    }
- *
- * 3. The supplement slots between craft standard and language instruction.
- *    Final system prompt order:
- *      [1] Identity + absolute limits
- *      [2] User's personal hard limits
- *      [3] Explicitness calibration
- *      [4] Craft standard
- *      [5] LLAMA_SUPPLEMENT (levels 3-4 only)
- *      [6] Language instruction (if non-English)
- */
+// Integrated in prompt-engine.ts, applied at all tiers post ADR-002.
+// System prompt order:
+//   [1] Identity + absolute limits
+//   [2] User's personal hard limits
+//   [3] Explicitness calibration
+//   [4] Craft standard
+//   [5] CRAFT_SUPPLEMENT (all tiers — Qwen generates everything)
+//   [6] Language instruction (if non-English)
