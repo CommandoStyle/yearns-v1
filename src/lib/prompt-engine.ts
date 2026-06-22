@@ -306,11 +306,13 @@ feel desire, not just read about it.
 ${pacingGuidance}
   `.trim())
 
-  // 5. Llama supplement — TEMPORARILY DISABLED for Llama baseline evaluation.
-  // Re-enable after test by restoring: if (explicitness >= 3) { systemParts.push(LLAMA_SUPPLEMENT) }
-  // if (explicitness >= 3) {
-  //   systemParts.push(LLAMA_SUPPLEMENT)
-  // }
+  // 5. Llama supplement — explicit tiers only
+  // Compensates for known Llama failure modes (emotional flatness, perspective
+  // drift, cliché vocab, rushed pacing). Stacks after craft standard so it
+  // is freshest in context at generation time.
+  if (explicitness >= 3) {
+    systemParts.push(LLAMA_SUPPLEMENT)
+  }
 
   // 6. Language — curated register guidance (sits after craft standard + LLAMA_SUPPLEMENT
   //    so it is the final calibration layer, freshest in the model's context)
