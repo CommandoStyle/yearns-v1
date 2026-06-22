@@ -139,26 +139,32 @@ const TOKENS_PER_WORD = 1.4  // Claude tokenisation average for literary prose
 // Explicitness descriptors — used in system prompt to calibrate Claude's output.
 // These are NOT shown to the user. They define the ceiling for each level.
 const EXPLICITNESS_GUIDANCE: Record<ExplicitnessLevel, string> = {
-  1: `Write with pure suggestion. Desire is palpable but never stated. Bodies are 
-      implied through sensation — warmth, proximity, breath, gaze. Nothing is named 
-      explicitly. The reader should feel more than they are told. Think: a hand 
-      resting on a wrist and all that means.`,
+  1: `Write with pure suggestion. Desire is felt, never stated. Nothing below the
+      neck is named or described — not body parts, not touch, not physical sensation
+      below the shoulders. The erotic charge lives entirely in atmosphere: a look held
+      a beat too long, proximity, the quality of silence, what is not said. The reader
+      should ache without being able to say exactly why. Think literary fiction,
+      not erotica.`,
 
-  2: `Write with sensual clarity. Desire is explicit in feeling if not in act. 
-      You may describe arousal, skin, mouths, the body wanting. Sexual acts are 
-      approached and felt but described obliquely — the approach, not the mechanics. 
-      The erotic charge is high; the explicit detail is low.`,
+  2: `Write with sensual clarity. Desire is explicit in feeling, not in act. You may
+      describe mouths, skin, breath, the body's awareness of another body. Arousal may
+      be named but not anatomically located. No sex acts — not described, not
+      approached, not implied as imminent. The story ends at the threshold, or in the
+      wanting. The charge is high; what happens stays behind a closed door.`,
 
-  3: `Write with full erotic clarity. Sexual acts may be described directly and 
-      without euphemism. Physicality, sensation, and desire are all available to you. 
-      Write with craft — the goal is arousal through quality prose, not through 
-      clinical description. The reader's desire matters more than explicitness for 
-      its own sake.`,
+  3: `Write with full erotic clarity. Sexual acts are described directly, without
+      euphemism or fade-to-black. Bodies, sensation, and physical detail are all in
+      play. Be specific — vague gestures at what is happening are not enough. Write
+      with craft: the goal is arousal through honest, specific prose. Not clinical,
+      not crude for its own sake, but clear and physical and present.`,
 
-  4: `Write without restriction within the absolute limits defined below. All 
-      consensual sexual content is permitted. Write with the full vocabulary of 
-      erotic literature. Quality and emotional truth remain the standard — 
-      this is not a licence for crudeness, it is a licence for freedom.`,
+  4: `Write without restriction within the absolute limits defined below. All
+      consensual sexual content is permitted — explicit, detailed, physical, prolonged.
+      Use the full vocabulary available to you: anatomically direct language is
+      permitted and often correct. Do not pull back, soften, or summarise what is
+      happening. Stay in the scene. Linger. The reader wants more than they expected —
+      give it to them. Quality still matters; crudeness in service of arousal is
+      not a failure.`,
 }
 
 const GENRE_WORLD: Record<Genre, string> = {
