@@ -93,28 +93,47 @@ export function StoryReader({
 
           {/* Story text */}
           {hasText && (
-            <div data-yn-build="v8">
-              {paragraphs.map((para, i) => (
-                <div
-                  key={i}
-                  style={{
-                    fontFamily: "'EB Garamond', Georgia, serif",
-                    fontSize: '1.125rem',
-                    lineHeight: '2.25rem',
-                    letterSpacing: '0.01em',
-                    color: 'rgba(0,0,0,0.9)',
-                    margin: 0,
-                    padding: 0,
-                    textIndent: i === 0 ? 0 : '2em',
-                  }}
-                >
-                  {para}
-                  {isGenerating && i === paragraphs.length - 1 && (
-                    <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <>
+              <style>{`
+                @keyframes yn-word-in {
+                  from { opacity: 0; }
+                  to   { opacity: 1; }
+                }
+                .yn-word {
+                  display: inline;
+                  animation: yn-word-in 180ms ease-out both;
+                }
+              `}</style>
+              <div data-yn-build="v8">
+                {paragraphs.map((para, i) => {
+                  const words = para.split(' ').filter(w => w.length > 0)
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        fontFamily: "'EB Garamond', Georgia, serif",
+                        fontSize: '1.125rem',
+                        lineHeight: '2.25rem',
+                        letterSpacing: '0.01em',
+                        color: 'rgba(0,0,0,0.9)',
+                        margin: 0,
+                        padding: 0,
+                        textIndent: i === 0 ? 0 : '2em',
+                      }}
+                    >
+                      {words.map((word, j) => (
+                        <span key={`${i}-${j}`} className="yn-word">
+                          {j > 0 && ' '}{word}
+                        </span>
+                      ))}
+                      {isGenerating && i === paragraphs.length - 1 && (
+                        <span className="inline-block w-px h-5 ml-0.5 bg-gray-600/70 align-middle animate-pulse" />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
 
           {/* Generating but no paragraphs yet — show pulse placeholder */}
