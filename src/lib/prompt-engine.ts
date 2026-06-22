@@ -110,6 +110,7 @@ export interface GenerationRequest {
   participant_mode?: ParticipantMode     // overrides profile if set
   continuation_id?: string              // if continuing a saved Yearn
   continuation_context?: string         // last 200 words of previous Yearn
+  previous_explicitness?: ExplicitnessLevel  // set on mid-read dial change to smooth transition
   prompt_version: string                // semver, loaded from Supabase
   language?: SupportedLanguage
   // ── Per-story overrides (all optional — fall back to profile if absent) ──
@@ -240,6 +241,7 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     length_mins,
     continuation_id,
     continuation_context,
+    previous_explicitness,
     prompt_version,
     spark,
     characters,
@@ -512,15 +514,28 @@ references — not their plots or characters.
   }
 
   // H. Continuation context
-  if (continuation_id && continuation_context) {
+  // Used for both saved-Yearn continuation and mid-read explicitness dial changes.
+  // previous_explicitness is only set on mid-read dial changes — triggers the
+  // transition instruction so the shift reads as natural escalation/easing.
+  if (continuation_context) {
+    const isLevelShift = previous_explicitness !== undefined && previous_explicitness !== explicitness
+    const shiftDirection = isLevelShift
+      ? (explicitness > previous_explicitness! ? 'escalating' : 'de-escalating')
+      : null
+
+    const transitionInstruction = isLevelShift ? `
+
+TRANSITION: This continuation shifts in intensity from what came before — moving from level ${previous_explicitness} to level ${explicitness} on a scale of 1–4.
+Do not snap to the new register instantly. Let the next few sentences carry the transition naturally — as if the scene itself is ${shiftDirection === 'escalating' ? 'building and intensifying' : 'easing and settling'}, not as if a switch was flipped. The reader should feel a shift in temperature, not a jump cut.` : ''
+
     narrativeParts.push(`
-CONTINUATION: This story continues from a previous Yearn. 
+CONTINUATION: This story continues directly from where it left off.
 The final passage was:
 
 "${continuation_context}"
 
 Continue from exactly this point. Maintain character, tone, and momentum.
-Do not recap what came before.
+Do not recap what came before.${transitionInstruction}
     `.trim())
   }
 

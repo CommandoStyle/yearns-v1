@@ -36,6 +36,7 @@ import type {
 export type YearnStatus =
   | 'idle'
   | 'generating'
+  | 'transitioning'   // mid-read dial change: frozen text visible, new generation pending
   | 'done'
   | 'error'
   | 'cancelled'
@@ -66,6 +67,8 @@ export interface GenerateParams {
   length_mins: number
   participant_mode?: import('@/lib/prompt-engine').ParticipantMode
   continuation_id?: string
+  continuation_context_direct?: string  // mid-read dial: caller provides frozen tail directly
+  previous_explicitness?: ExplicitnessLevel  // mid-read dial: for transition instruction
   language?: SupportedLanguage
   // Per-story overrides from pre-generation panel
   spark?: string
@@ -83,10 +86,15 @@ export interface UseYearnReturn {
   generate: (params: GenerateParams) => Promise<void>
   cancel: () => void
   reset: () => void
-  // Imperative explicitness dial adjustment mid-story.
-  // Does NOT restart generation — adjusts a live ref that would
-  // influence a future `more` call, and records the signal.
   adjustExplicitness: (level: ExplicitnessLevel) => void
+  // Mid-read dial change: freeze text at furthestReadOffset, regenerate continuation
+  // at the new explicitness level, appending to frozen text seamlessly.
+  midReadGenerate: (
+    frozenText: string,
+    newLevel: ExplicitnessLevel,
+    prevLevel: ExplicitnessLevel,
+    params: GenerateParams,
+  ) => Promise<void>
 }
 
 // ─── Initial state ────────────────────────────────────────────────────────────
@@ -336,12 +344,167 @@ export function useYearn(authToken: string | null): UseYearnReturn {
     }
   }, [authToken, stopFlushInterval])
 
+  // ── Mid-read explicitness dial ───────────────────────────────────────────
+  // Called when the reader changes the dial while a story is active or done.
+  // frozenText: story text up to furthestReadOffset (the reader's high-water mark)
+  // The new generation streams tokens that append directly onto frozenText.
+
+  const midReadGenerate = useCallback(async (
+    frozenText: string,
+    newLevel: ExplicitnessLevel,
+    prevLevel: ExplicitnessLevel,
+    params: GenerateParams,
+  ) => {
+    if (!authToken) return
+
+    // Cancel any in-flight stream
+    abortRef.current?.abort()
+    stopFlushInterval()
+
+    // Seed the buffer with frozen text — new tokens append from here
+    textBufferRef.current = frozenText
+    currentExplicitnessRef.current = newLevel
+
+    // Show transitioning state: frozen text visible, regeneration pending
+    const transitionCopy = newLevel > prevLevel ? 'Deepening...' : 'Easing back...'
+    setState({
+      status: 'transitioning',
+      text: frozenText,
+      wordCount: frozenText.trim().split(/\s+/).filter(Boolean).length,
+      promptVersion: null,
+      error: null,
+      errorMessage: transitionCopy,  // repurpose errorMessage as transition label
+    })
+
+    // Last ~200 words as continuation context
+    const words = frozenText.trim().split(/\s+/)
+    const tail  = words.slice(-200).join(' ')
+
+    const abort = new AbortController()
+    abortRef.current = abort
+
+    flushIntervalRef.current = setInterval(() => {
+      const currentText = textBufferRef.current
+      if (currentText) {
+        setState(prev => ({ ...prev, text: currentText, status: 'generating' }))
+      }
+    }, 50)
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          ...params,
+          explicitness:               newLevel,
+          continuation_context_direct: tail,
+          previous_explicitness:       prevLevel,
+        }),
+        signal: abort.signal,
+      })
+
+      if (!response.ok) {
+        stopFlushInterval()
+        let errorCode: YearnErrorCode = 'unknown'
+        try {
+          const err = await response.json() as { error?: string }
+          errorCode = (err.error as YearnErrorCode) ?? 'unknown'
+        } catch { /* unparseable */ }
+        setState(prev => ({
+          ...prev,
+          status: 'error',
+          error: errorCode,
+          errorMessage: getFriendlyError(errorCode),
+        }))
+        return
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const messages = buffer.split('\n\n')
+        buffer = messages.pop() ?? ''
+
+        for (const message of messages) {
+          if (!message.trim()) continue
+          const lines = message.split('\n')
+          let eventType = 'message'
+          let dataLine  = ''
+          for (const line of lines) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim()
+            else if (line.startsWith('data: ')) dataLine = line.slice(6).trim()
+          }
+          if (!dataLine) continue
+          let parsed: unknown
+          try { parsed = JSON.parse(dataLine) } catch { continue }
+
+          switch (eventType) {
+            case 'token': {
+              const { t } = parsed as { t: string }
+              textBufferRef.current += t
+              break
+            }
+            case 'done': {
+              stopFlushInterval()
+              const { word_count, prompt_version } = parsed as { word_count: number; prompt_version: string }
+              const finalText = textBufferRef.current
+              setState({
+                status: 'done',
+                text: finalText,
+                wordCount: word_count,
+                promptVersion: prompt_version,
+                error: null,
+                errorMessage: null,
+              })
+              recordImplicitSignal('generation_completed', { word_count }, authToken)
+              break
+            }
+            case 'error': {
+              stopFlushInterval()
+              const { code } = parsed as { code: YearnErrorCode }
+              setState(prev => ({
+                ...prev,
+                status: 'error',
+                text: textBufferRef.current,
+                error: code,
+                errorMessage: getFriendlyError(code),
+              }))
+              break
+            }
+          }
+        }
+      }
+    } catch (err) {
+      stopFlushInterval()
+      if ((err as Error).name === 'AbortError') return
+      setState(prev => ({
+        ...prev,
+        status: 'error',
+        text: textBufferRef.current,
+        error: 'network_error',
+        errorMessage: getFriendlyError('network_error'),
+      }))
+    }
+  }, [authToken, stopFlushInterval])
+
   return {
     state,
     generate,
     cancel,
     reset,
     adjustExplicitness,
+    midReadGenerate,
   }
 }
 

@@ -14,7 +14,7 @@ export default function ReadPage() {
   const { session } = useAuth()
   const authToken   = session?.access_token ?? null
 
-  const { state, generate, cancel, reset, adjustExplicitness } = useYearn(authToken)
+  const { state, generate, cancel, reset, adjustExplicitness, midReadGenerate } = useYearn(authToken)
 
   const [currentExplicitness, setCurrentExplicitness] = useState<ExplicitnessLevel>(2)
   const [pendingParams, setPendingParams]              = useState<GenerateParams | null>(null)
@@ -61,6 +61,37 @@ export default function ReadPage() {
     adjustExplicitness(level)
   }
 
+  function handleMidReadExplicitnessChange(
+    frozenText: string,
+    newLevel: ExplicitnessLevel,
+    prevLevel: ExplicitnessLevel,
+  ) {
+    setCurrentExplicitness(newLevel)
+    // Log mid-read signal — separate from pre-generation dial adjustment
+    if (authToken) {
+      fetch('/api/profile/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({
+          event: 'midread_explicitness_change',
+          data: {
+            from_level:         prevLevel,
+            to_level:           newLevel,
+            read_progress_pct:  lastParams
+              ? Math.round((frozenText.length / Math.max(state.text.length, 1)) * 100)
+              : null,
+            // No story content logged
+          },
+          timestamp: Date.now(),
+        }),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    if (lastParams) {
+      midReadGenerate(frozenText, newLevel, prevLevel, lastParams)
+    }
+  }
+
   function handleReset() {
     setCurrentExplicitness(2)
     setPendingParams(null)
@@ -92,6 +123,7 @@ export default function ReadPage() {
           onCancel={cancel}
           onReset={handleReset}
           onAdjustExplicitness={handleAdjustExplicitness}
+          onMidReadExplicitnessChange={handleMidReadExplicitnessChange}
           currentExplicitness={currentExplicitness}
           authToken={authToken}
           isPro={isPro}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { ExplicitnessDial } from './ExplicitnessDial'
 import type { YearnState } from '@/hooks/useYearn'
 import type { ExplicitnessLevel } from '@/lib/prompt-engine'
@@ -12,6 +12,9 @@ interface StoryReaderProps {
   onCancel:             () => void
   onReset:              () => void
   onAdjustExplicitness: (level: ExplicitnessLevel) => void
+  // Called instead of onAdjustExplicitness when text is active —
+  // receives frozen text up to furthest-read position for mid-read regeneration.
+  onMidReadExplicitnessChange?: (frozenText: string, newLevel: ExplicitnessLevel, prevLevel: ExplicitnessLevel) => void
   currentExplicitness:  ExplicitnessLevel
   // Save support
   authToken:            string | null
@@ -28,13 +31,20 @@ export function StoryReader({
   onCancel,
   onReset,
   onAdjustExplicitness,
+  onMidReadExplicitnessChange,
   currentExplicitness,
   authToken,
   isPro,
   generationMeta,
 }: StoryReaderProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const bottomRef   = useRef<HTMLDivElement>(null)
+  const storyRef    = useRef<HTMLDivElement>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+
+  // Furthest-read high-water mark — character offset into state.text.
+  // Only ever increases, even when the reader scrolls back up.
+  const furthestReadOffsetRef = useRef<number>(0)
+  const [furthestReadOffset, setFurthestReadOffset] = useState<number>(0)
 
   async function handleSave() {
     if (saveStatus === 'saving' || saveStatus === 'saved') return
@@ -61,9 +71,13 @@ export function StoryReader({
     }
   }
 
-  // Reset save status when a new story starts
+  // Reset save status and furthest-read offset when a new story starts
   useEffect(() => {
-    if (state.status === 'generating') setSaveStatus('idle')
+    if (state.status === 'generating') {
+      setSaveStatus('idle')
+      furthestReadOffsetRef.current = 0
+      setFurthestReadOffset(0)
+    }
   }, [state.status])
 
   // Auto-scroll to bottom while generating
@@ -73,16 +87,78 @@ export function StoryReader({
     }
   }, [state.text, state.status])
 
+  // Scroll listener — update furthest-read high-water mark.
+  // Maps scroll position to a character offset by finding which rendered
+  // paragraph elements are above the viewport midpoint.
+  const computeFurthestOffset = useCallback(() => {
+    if (!storyRef.current || !state.text) return
+    const container = storyRef.current
+    const paraEls   = Array.from(container.querySelectorAll<HTMLElement>('[data-para-idx]'))
+    if (!paraEls.length) return
+
+    const viewportMid = window.scrollY + window.innerHeight * 0.6
+
+    // Find the last paragraph whose top is above the viewport midpoint
+    let charOffset = 0
+    const textParas = state.text.split(/\n+/).map(p => p.trim()).filter(Boolean)
+
+    for (const el of paraEls) {
+      const idx  = parseInt(el.dataset.paraIdx ?? '0', 10)
+      const rect = el.getBoundingClientRect()
+      const top  = rect.top + window.scrollY
+
+      if (top <= viewportMid) {
+        // Count characters up to and including this paragraph
+        charOffset = textParas.slice(0, idx + 1).join('\n').length
+      }
+    }
+
+    if (charOffset > furthestReadOffsetRef.current) {
+      furthestReadOffsetRef.current = charOffset
+      setFurthestReadOffset(charOffset)
+    }
+  }, [state.text])
+
+  useEffect(() => {
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null
+    function onScroll() {
+      if (throttleTimer) return
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null
+        computeFurthestOffset()
+      }, 150)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (throttleTimer) clearTimeout(throttleTimer)
+    }
+  }, [computeFurthestOffset])
+
+  // Dial change handler — mid-read if text exists, pre-generation otherwise
+  function handleDialChange(newLevel: ExplicitnessLevel) {
+    if (hasText && onMidReadExplicitnessChange) {
+      // Use furthest-read offset, or full text if reader hasn't scrolled at all
+      const boundary  = furthestReadOffset || state.text.length
+      const frozenText = state.text.slice(0, boundary)
+      onMidReadExplicitnessChange(frozenText, newLevel, currentExplicitness)
+    } else {
+      onAdjustExplicitness(newLevel)
+    }
+  }
+
   const paragraphs = state.text
     .split(/\n+/)
     .map(p => p.trim())
     .filter(Boolean)
 
-  const isGenerating = state.status === 'generating'
-  const isDone       = state.status === 'done'
-  const isCancelled  = state.status === 'cancelled'
-  const isError      = state.status === 'error'
-  const hasText      = state.text.length > 0
+  const isGenerating   = state.status === 'generating'
+  const isTransitioning = state.status === 'transitioning'
+  const isDone         = state.status === 'done'
+  const isCancelled    = state.status === 'cancelled'
+  const isError        = state.status === 'error'
+  const hasText        = state.text.length > 0
+  const transitionCopy = state.errorMessage  // repurposed as label during transitioning
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -104,12 +180,13 @@ export function StoryReader({
                   animation: yn-word-in 200ms ease-out both;
                 }
               `}</style>
-              <div data-yn-build="v8">
+              <div data-yn-build="v8" ref={storyRef}>
                 {paragraphs.map((para, i) => {
                   const words = para.split(' ').filter(w => w.length > 0)
                   return (
                     <div
                       key={i}
+                      data-para-idx={i}
                       style={{
                         fontFamily: "'EB Garamond', Georgia, serif",
                         fontSize: '1.125rem',
@@ -130,6 +207,24 @@ export function StoryReader({
                   )
                 })}
               </div>
+
+              {/* Transition overlay — shown while mid-read regeneration is pending */}
+              {isTransitioning && (
+                <div className="mt-16 flex flex-col items-center gap-4">
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map(n => (
+                      <div
+                        key={n}
+                        className="w-1.5 h-1.5 rounded-full bg-gray-400/60"
+                        style={{ animation: `yn-word-in 600ms ease-in-out ${n * 180}ms infinite alternate` }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-900/35 text-xs tracking-widest uppercase">
+                    {transitionCopy ?? 'Continuing...'}
+                  </p>
+                </div>
+              )}
             </>
           )}
 
@@ -179,13 +274,13 @@ export function StoryReader({
       <div className="fixed bottom-0 inset-x-0 border-t border-gray-900/8 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto max-w-2xl px-6 py-4">
 
-          {isGenerating && (
+          {(isGenerating || isTransitioning) && (
             <div className="flex items-center gap-4">
               <ExplicitnessDial
                 value={currentExplicitness}
-                onChange={onAdjustExplicitness}
+                onChange={handleDialChange}
                 compact
-                disabled
+                disabled={isTransitioning}
               />
               <button
                 onClick={onCancel}
@@ -200,7 +295,7 @@ export function StoryReader({
             <div className="flex items-center gap-3">
               <ExplicitnessDial
                 value={currentExplicitness}
-                onChange={onAdjustExplicitness}
+                onChange={handleDialChange}
                 compact
               />
               <div className="ml-auto flex items-center gap-3">

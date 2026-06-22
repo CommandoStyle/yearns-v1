@@ -79,6 +79,10 @@ interface GenerateBody {
   length_mins: number
   participant_mode?: import('@/lib/prompt-engine').ParticipantMode
   continuation_id?: string
+  // Direct continuation context — used for mid-read explicitness dial changes.
+  // Bypasses the DB lookup (caller provides the last 200 words directly).
+  continuation_context_direct?: string
+  previous_explicitness?: ExplicitnessLevel
   language?: SupportedLanguage
   spark?: string
   characters?: import('@/lib/prompt-engine').CharacterConfig[]
@@ -103,6 +107,12 @@ function validateBody(body: unknown): GenerateBody | null {
     length_mins:               b.length_mins,
     participant_mode:          b.participant_mode as import('@/lib/prompt-engine').ParticipantMode | undefined,
     continuation_id:           typeof b.continuation_id === 'string' ? b.continuation_id : undefined,
+    continuation_context_direct: typeof b.continuation_context_direct === 'string'
+      ? b.continuation_context_direct.slice(0, 2000)  // ~200 words, safety cap
+      : undefined,
+    previous_explicitness:     [1,2,3,4].includes(b.previous_explicitness as number)
+      ? b.previous_explicitness as ExplicitnessLevel
+      : undefined,
     language:                  b.language as SupportedLanguage | undefined,
     spark:                     typeof b.spark === 'string' ? b.spark.slice(0, 200) : undefined,
     characters:                Array.isArray(b.characters) ? sanitiseCharacters(b.characters) : undefined,
@@ -210,9 +220,12 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const profile: DesireProfile = profileResult.data ?? {}
   const promptVersion = versionResult.data?.version ?? '1.0.0'
-  const continuationContext = continuationResult.data?.tail_text ?? undefined
+  // continuation_context_direct takes precedence over DB tail_text (mid-read dial change)
+  const continuationContext = body.continuation_context_direct
+    ?? continuationResult.data?.tail_text
+    ?? undefined
 
-  // 8. Build prompt (model-agnostic — same structure for Claude and Together.ai)
+  // 8. Build prompt
   const genRequest: GenerationRequest = {
     profile,
     explicitness:              body.explicitness,
@@ -221,6 +234,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     participant_mode:          body.participant_mode,
     continuation_id:           body.continuation_id,
     continuation_context:      continuationContext,
+    previous_explicitness:     body.previous_explicitness,
     prompt_version:            promptVersion,
     language:                  body.language,
     spark:                     body.spark,
