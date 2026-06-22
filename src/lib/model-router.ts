@@ -49,15 +49,15 @@ type ModelKey = keyof typeof MODELS
 // ─── Routing decision ─────────────────────────────────────────────────────────
 
 export function selectModel(explicitness: ExplicitnessLevel): ModelKey {
-  // TEMPORARY — routing all tiers to Llama 3.3 70B for quality evaluation.
+  // TEMPORARY — routing tiers 1-2 to Qwen3-235B for quality evaluation.
   // Claude disabled. Restore original routing when test is complete.
   switch (explicitness) {
     case 1:
     case 2:
-    case 3:
-      return 'LLAMA_70B'
     case 4:
       return 'MIXTRAL'
+    case 3:
+      return 'LLAMA_70B'
   }
 }
 
