@@ -37,8 +37,7 @@ export function StoryReader({
   isPro,
   generationMeta,
 }: StoryReaderProps) {
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const storyRef    = useRef<HTMLDivElement>(null)
+  const storyRef = useRef<HTMLDivElement>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
 
   // Furthest-read high-water mark — character offset into state.text.
@@ -80,12 +79,6 @@ export function StoryReader({
     }
   }, [state.status])
 
-  // Auto-scroll to bottom while generating
-  useEffect(() => {
-    if (state.status === 'generating') {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    }
-  }, [state.text, state.status])
 
   // Scroll listener — update furthest-read high-water mark.
   // Maps scroll position to a character offset by finding which rendered
@@ -266,7 +259,6 @@ export function StoryReader({
             </div>
           )}
 
-          <div ref={bottomRef} />
         </div>
       </main>
 
