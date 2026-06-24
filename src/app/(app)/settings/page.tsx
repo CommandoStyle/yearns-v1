@@ -10,6 +10,13 @@ import {
 import { createBrowserClient } from '@/lib/supabase'
 import type { SupportedLanguage } from '@/lib/prompt-engine'
 import type { AgeBand } from '@/lib/age-registers'
+import type { ProseRhythm } from '@/lib/prose-quality-standard'
+
+const PROSE_RHYTHM_OPTIONS: { key: ProseRhythm; label: string; sub: string }[] = [
+  { key: 'no_preference',    label: 'No strong preference', sub: 'let the story breathe naturally'  },
+  { key: 'shorter_punchier', label: 'Shorter and punchier',  sub: 'direct, no lingering'            },
+  { key: 'longer_lingering', label: 'Longer and lingering',  sub: 'sentences that build and unspool' },
+]
 
 const AGE_BANDS: { key: AgeBand; label: string }[] = [
   { key: '18_24', label: 'My 20s' },
@@ -50,6 +57,8 @@ export default function SettingsPage() {
   const [langStage,      setLangStage]      = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
   const [ageBand,        setAgeBand]        = useState<AgeBand | null>(null)
   const [ageStage,       setAgeStage]       = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [proseRhythm,    setProseRhythm]    = useState<ProseRhythm>('no_preference')
+  const [rhythmStage,    setRhythmStage]    = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
 
   const supportsPasskeys = typeof window !== 'undefined' && browserSupportsWebAuthn()
 
@@ -57,6 +66,7 @@ export default function SettingsPage() {
     loadCredentials()
     loadLanguage()
     loadAgeBand()
+    loadProseRhythm()
   }, [])
 
   async function loadCredentials() {
@@ -101,6 +111,40 @@ export default function SettingsPage() {
       setAgeStage(res.ok ? 'done' : 'error')
     } catch {
       setAgeStage('error')
+    }
+  }
+
+  async function loadProseRhythm() {
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const { data } = await supabase
+      .from('desire_profiles')
+      .select('prose_rhythm')
+      .eq('user_id', session.user.id)
+      .single()
+    const row = data as { prose_rhythm?: string } | null
+    if (row?.prose_rhythm) setProseRhythm(row.prose_rhythm as ProseRhythm)
+  }
+
+  async function saveProseRhythm(rhythm: ProseRhythm) {
+    setProseRhythm(rhythm)
+    setRhythmStage('saving')
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('no session')
+      const res = await fetch('/api/profile', {
+        method:  'PATCH',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ prose_rhythm: rhythm }),
+      })
+      setRhythmStage(res.ok ? 'done' : 'error')
+    } catch {
+      setRhythmStage('error')
     }
   }
 
@@ -356,6 +400,38 @@ export default function SettingsPage() {
 
         {ageStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
         {ageStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
+      </section>
+
+      {/* Prose rhythm */}
+      <section className="space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">Reading rhythm</h2>
+          <p className="text-gray-900/40 text-sm">
+            Do you prefer your Yearns shorter and punchier, or longer and more lingering? Entirely optional.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          {PROSE_RHYTHM_OPTIONS.map(({ key, label, sub }) => (
+            <button
+              key={key}
+              onClick={() => saveProseRhythm(key)}
+              className={`w-full py-3 px-4 text-left border transition-all duration-200 ${
+                proseRhythm === key
+                  ? 'border-gray-600/70 bg-gray-600/5'
+                  : 'border-gray-900/12 hover:border-gray-900/25'
+              }`}
+            >
+              <p className={`font-serif text-sm ${proseRhythm === key ? 'text-gray-600' : 'text-gray-900'}`}>
+                {label}
+              </p>
+              <p className="text-gray-900/35 text-xs mt-0.5">{sub}</p>
+            </button>
+          ))}
+        </div>
+
+        {rhythmStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
+        {rhythmStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
       {/* Cast */}

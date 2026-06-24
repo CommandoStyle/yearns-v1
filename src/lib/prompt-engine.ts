@@ -57,6 +57,7 @@ export interface DesireProfile {
   setting_preference?: Partial<Record<SettingType, number>>
   language?: SupportedLanguage
   age_band?: import('@/lib/age-registers').AgeBand   // optional life-stage register calibration
+  prose_rhythm?: import('@/lib/prose-quality-standard').ProseRhythm  // optional sentence rhythm preference
 }
 
 export type SettingType =
@@ -208,7 +209,7 @@ ABSOLUTE LIMITS — these override every other instruction in this prompt:
    described are real or that real people are involved.
 `.trim()
 
-import { CRAFT_SUPPLEMENT } from '@/lib/craft-correction-supplement'
+import { PROSE_QUALITY_STANDARD, PROSE_RHYTHM_GUIDANCE, type ProseRhythm } from '@/lib/prose-quality-standard'
 import { getLanguageRegister } from '@/lib/language-registers'
 import { getAgeRegister } from '@/lib/age-registers'
 
@@ -328,7 +329,11 @@ ${pacingGuidance}
   // generates all tiers, so the supplement applies universally. Content is
   // general craft principles that transfer across models; a trainer-driven
   // review to calibrate specifically for Qwen's tendencies is pending.
-  systemParts.push(CRAFT_SUPPLEMENT)
+  systemParts.push(PROSE_QUALITY_STANDARD)
+  // Rhythm preference stacks on top — calibrates sentence length within the standard.
+  // NOTE: fragment-for-emphasis tic suppression (Part 1) applies regardless of rhythm choice.
+  const rhythmGuidance = PROSE_RHYTHM_GUIDANCE[(profile.prose_rhythm as ProseRhythm) ?? 'no_preference'] ?? ''
+  if (rhythmGuidance) systemParts.push(rhythmGuidance)
 
   // 6. Language — curated register guidance (sits after craft standard + LLAMA_SUPPLEMENT
   //    so it is the final calibration layer, freshest in the model's context)

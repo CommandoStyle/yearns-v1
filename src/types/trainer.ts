@@ -30,7 +30,13 @@ export const FAILURE_CODES = [
   { code: 'repetition',          label: 'Repetition',          description: 'Same phrases, sentence structures, or beats repeated' },
   { code: 'meta_commentary',     label: 'Meta-commentary',     description: 'Narrator announces or summarises instead of showing' },
   { code: 'rhythm_flat',         label: 'Rhythm flat',         description: 'Every sentence the same length and weight' },
-  { code: 'abrupt_ending',       label: 'Abrupt ending',       description: 'Story ends without landing — rushed or incomplete' },
+  { code: 'abrupt_ending',             label: 'Abrupt ending',             description: 'Story ends without landing — rushed or incomplete' },
+  // ── Craft Standard v2 tic-specific codes (added prompt-11) ──────────────────
+  { code: 'fragment_tic',              label: 'Fragment-for-emphasis tic',  description: 'Sentence fragment used for dramatic effect, AI-flavored pattern' },
+  { code: 'really_seen_construction',  label: '"Really X" intensifier',     description: '[verb], really/truly [verb] or "not just X but X" construction' },
+  { code: 'abstract_emotion_telling',  label: 'Abstract emotion telling',   description: 'Names a feeling abstractly instead of showing a concrete detail' },
+  { code: 'triadic_list_overuse',      label: 'Triadic list overuse',       description: 'Reaches for exactly three adjectives/phrases repeatedly' },
+  { code: 'philosophical_aside',       label: 'Philosophical aside',        description: 'Authorial-feeling generalization about desire/love breaking character POV' },
 ] as const
 
 export type FailureCode = typeof FAILURE_CODES[number]['code']

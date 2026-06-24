@@ -66,6 +66,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     p_setting_preference:    (body.setting_preference as Json)        ?? null,
     p_language:              (body.language as string)               ?? null,
     p_age_band:              (body.age_band as string)               ?? null,
+    p_prose_rhythm:          (body.prose_rhythm as string)           ?? null,
   })
 
   if (error) {
