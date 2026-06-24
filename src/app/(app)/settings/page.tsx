@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   startRegistration,
   browserSupportsWebAuthn,
@@ -355,6 +356,17 @@ export default function SettingsPage() {
 
         {ageStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
         {ageStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
+      </section>
+
+      {/* Cast */}
+      <section className="pt-6 border-t border-gray-900/8">
+        <Link
+          href="/profile/cast"
+          className="text-gray-900/45 text-xs tracking-widest uppercase hover:text-gray-900/70 transition-colors"
+        >
+          Your cast →
+        </Link>
+        <p className="mt-1 text-gray-900/30 text-sm">Build a recurring cast for your Yearns.</p>
       </section>
 
       {/* Sign out */}

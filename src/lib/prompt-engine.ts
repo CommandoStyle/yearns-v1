@@ -14,6 +14,8 @@
  *   This file contains the assembly logic, not the prompt text itself.
  */
 
+import type { SelfDescriptionFields } from '@/types/cast'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ExplicitnessLevel = 1 | 2 | 3 | 4
@@ -116,6 +118,7 @@ export interface GenerationRequest {
   participant_mode_override?: ParticipantMode  // per-story override, doesn't touch profile
   voyeur_context?: VoyeurContext        // present only when mode is voyeur
   alone_context?: AloneContext          // present only when mode is alone
+  self_description?: SelfDescriptionFields  // from cast_characters WHERE is_self=true; optional
 }
 
 export interface BuiltPrompt {
@@ -218,6 +221,26 @@ const PERCEPTUAL_CHANNEL_GUIDANCE: Record<PerceptualChannel, string> = {
   peripheral: 'You are aware of them without directly watching — they are at the edge of your attention, your perception catching details without you intending to look. The prose should have the quality of something half-noticed and impossible to ignore.',
 }
 
+// Builds the physical self-description clause injected into the PROTAGONIST
+// section. Returns '' when no fields are populated (graceful degradation).
+// Only used in participant mode and alone mode — never in voyeur mode.
+function buildSelfDescriptionClause(self: SelfDescriptionFields | null | undefined): string {
+  if (!self) return ''
+  const details: string[] = []
+  if (self.hair_colour) details.push(`hair: ${self.hair_colour}`)
+  if (self.eye_colour)  details.push(`eyes: ${self.eye_colour}`)
+  if (self.build)       details.push(`build: ${self.build}`)
+  if (self.height)      details.push(`height: ${self.height}`)
+  if (details.length === 0 && !self.additional_detail) return ''
+
+  return `
+Physical specifics, to weave in naturally (do not list these as an
+inventory — let them inform how she moves, is seen, and is described,
+the same way you would for any other character's physical presence):
+${details.join(', ')}${self.additional_detail ? `\nAdditional: ${self.additional_detail}` : ''}
+  `.trim()
+}
+
 export function buildPrompt(req: GenerationRequest): BuiltPrompt {
   const {
     profile,
@@ -235,6 +258,7 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     tonights_want,
     voyeur_context,
     alone_context,
+    self_description,
   } = req
 
   const lang = req.language ?? profile.language ?? 'en'
@@ -385,21 +409,23 @@ SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to
       ? 'There is a real possibility of being discovered. This risk is part of the tension and should be felt throughout — heightened awareness, urgency, the specific thrill of "what if someone…" Do not actually have her get caught unless the user has indicated otherwise; the thrill of potential discovery is the point, not an actual interruption.'
       : 'This is completely private. No risk of discovery — the focus is entirely internal and uninterrupted.'
 
+    const selfClauseAlone = buildSelfDescriptionClause(self_description)
     narrativeParts.push(`
 ALONE:
 
-This is a story about solitude, not absence. The reader is the entire scene — there is no one else, and the story should not gesture toward an implied missing partner. Write with full attention to physical sensation, internal narrative, and the specific texture of this private moment.
+This is a story about solitude, not absence. The reader is the entire scene — there is no one else, and the story should not gesture toward an implied missing partner. Write with full attention to physical sensation, internal narrative, and the specific texture of this private moment.${selfClauseAlone ? `\n\n${selfClauseAlone}` : ''}
 
 ${focusLine}
 
 ${discoveryLine}
     `.trim())
   } else if (mode === 'participant') {
+    const selfClause = buildSelfDescriptionClause(self_description)
     narrativeParts.push(`
 PROTAGONIST: The reader is the protagonist. Her name is ${displayName}.
 Write in close third-person or second-person — she should feel that
 this is happening to her, that ${displayName} is unmistakably her.
-Her interior experience is primary.
+Her interior experience is primary.${selfClause ? `\n${selfClause}` : ''}
     `.trim())
   } else {
     // Voyeur mode: the reader is a watcher, not a character in the scene

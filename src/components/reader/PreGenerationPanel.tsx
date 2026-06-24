@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { GenerateParams } from '@/hooks/useYearn'
 import type { AloneContext, CharacterConfig, ParticipantMode, PerceptualChannel } from '@/lib/prompt-engine'
+import type { CastCharacterRow } from '@/types/cast'
 
 // ─── Curated content ──────────────────────────────────────────────────────────
 // Sparks are present-day / real-world scenarios (ADR-003 — here and now).
@@ -134,6 +135,21 @@ export function PreGenerationPanel({
   const [showCharacters, setShowCharacters] = useState(false)
   // Per-character: whether the "explore more roles" expansion is open
   const [showTransgressiveRoles, setShowTransgressiveRoles] = useState<Record<string, boolean>>({})
+  // Per-character cast source: 'cast' | 'new'. null = not yet chosen.
+  const [characterSource, setCharacterSource]  = useState<Record<string, 'cast' | 'new'>>({})
+  // Promoted-from-story: after generation, offer to save ephemeral chars to cast
+  const [promoteCandidates, setPromoteCandidates] = useState<CharacterConfig[]>([])
+
+  // ── Saved cast (fetched once on mount when authToken is available) ──────────
+  const [savedCast, setSavedCast] = useState<CastCharacterRow[]>([])
+
+  useEffect(() => {
+    if (!authToken) return
+    fetch('/api/cast', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.ok ? r.json() : { cast: [] })
+      .then(({ cast }) => setSavedCast((cast as CastCharacterRow[]).filter(c => !c.is_self)))
+      .catch(() => {})
+  }, [authToken])
 
   // ── Voyeur-mode: watcher context ───────────────────────────────────────────
   const [watcherPosition, setWatcherPosition]   = useState('')
@@ -153,6 +169,20 @@ export function PreGenerationPanel({
   // ── Character helpers ──────────────────────────────────────────────────────
   function updateCharacter(id: string, patch: Partial<CharacterConfig>) {
     setCharacters(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+  }
+
+  // Pre-fill a character slot from a saved cast member.
+  // Per-story edits to the pre-filled slot do NOT mutate the saved cast record
+  // unless the user explicitly saves it back (promote-from-story path).
+  function pickFromCast(charId: string, castMember: CastCharacterRow) {
+    setCharacters(prev => prev.map(c => c.id !== charId ? c : {
+      ...c,
+      name:   castMember.name   ?? c.name,
+      gender: (castMember.gender as CharacterConfig['gender']) ?? c.gender,
+      traits: castMember.traits ?? c.traits,
+      role:   castMember.role   ?? c.role,
+    }))
+    setCharacterSource(prev => ({ ...prev, [charId]: 'cast' }))
   }
 
   function toggleTrait(charId: string, trait: string) {
@@ -531,6 +561,51 @@ export function PreGenerationPanel({
                       )}
                     </div>
 
+                    {/* Cast source fork — "from your cast" vs "someone new" */}
+                    {savedCast.length > 0 && characterSource[char.id] === undefined && (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setCharacterSource(prev => ({ ...prev, [char.id]: 'cast' }))}
+                          className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 hover:border-gray-400 transition-colors"
+                        >
+                          from your cast
+                        </button>
+                        <button
+                          onClick={() => setCharacterSource(prev => ({ ...prev, [char.id]: 'new' }))}
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          someone new
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Cast member picker */}
+                    {characterSource[char.id] === 'cast' && (
+                      <div className="space-y-1.5">
+                        {savedCast.map(cm => (
+                          <button
+                            key={cm.id}
+                            onClick={() => pickFromCast(char.id, cm)}
+                            className="w-full text-left px-3 py-2 border border-gray-200 hover:border-gray-400 transition-colors text-xs text-gray-700"
+                          >
+                            <span className="font-medium">{cm.name || 'unnamed'}</span>
+                            {cm.gender && cm.gender !== 'unspecified' && <span className="text-gray-400 ml-1">({cm.gender})</span>}
+                            {cm.role && <span className="text-gray-400 ml-1">· {cm.role}</span>}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setCharacterSource(prev => ({ ...prev, [char.id]: 'new' }))}
+                          className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
+                        >
+                          someone new instead
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Editable fields — shown for 'new' source, or after picking from cast (editable in place) */}
+                    {(characterSource[char.id] === 'new' || characterSource[char.id] === 'cast' || savedCast.length === 0) && (
+                    <div className="space-y-3">
+
                     {/* Name */}
                     <input
                       type="text"
@@ -655,6 +730,9 @@ export function PreGenerationPanel({
                         />
                       </div>
                     </div>
+                    </div>
+                    )}
+
                   </div>
                 ))}
 

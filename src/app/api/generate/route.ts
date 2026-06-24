@@ -38,6 +38,7 @@ import type {
   SupportedLanguage,
   GenerationRequest,
 } from '@/lib/prompt-engine'
+// SelfDescriptionFields imported via GenerationRequest.self_description (type is inlined)
 
 export const runtime = 'edge'
 export const maxDuration = 120
@@ -209,13 +210,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   const inputViolation = inputFilter({ setting: body.setting, language: body.language })
   if (inputViolation) return jsonError('content_policy', 400)
 
-  // 7. Load profile + prompt version + continuation
-  const [profileResult, versionResult, continuationResult] = await Promise.all([
+  // 7. Load profile + prompt version + continuation + self cast row
+  const [profileResult, versionResult, continuationResult, selfCastResult] = await Promise.all([
     supabase.from('desire_profiles').select('*').eq('user_id', userId).single(),
     supabase.from('prompt_versions').select('version').eq('is_active', true).single(),
     body.continuation_id
       ? supabase.from('yearns').select('tail_text').eq('id', body.continuation_id).eq('user_id', userId).single()
       : Promise.resolve({ data: null }),
+    // cast_characters not yet in generated types — cast until migration 0010 applied
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('cast_characters')
+      .select('hair_colour, eye_colour, build, height, additional_detail')
+      .eq('user_id', userId)
+      .eq('is_self', true)
+      .single(),
   ])
 
   const profile: DesireProfile = profileResult.data ?? {}
@@ -245,6 +254,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     participant_mode_override: body.participant_mode_override,
     voyeur_context:            body.voyeur_context,
     alone_context:             body.alone_context,
+    self_description:          selfCastResult.data ?? undefined,
   }
 
   // Classify character roles for logging — log category only, never free-text content
