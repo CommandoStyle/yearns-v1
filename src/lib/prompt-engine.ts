@@ -115,7 +115,7 @@ export interface GenerationRequest {
   characters?: CharacterConfig[]        // 1–4 entries; replaces character_override
   pace?: 1 | 2 | 3                      // 1=lingering 2=building 3=inevitable
   specific_detail?: string              // max 60 chars — free text setting detail
-  tonights_want?: string               // max 120 chars — overrides three_words emphasis
+  current_yearning?: string               // max 120 chars — overrides three_words emphasis
   participant_mode_override?: ParticipantMode  // per-story override, doesn't touch profile
   voyeur_context?: VoyeurContext        // present only when mode is voyeur
   alone_context?: AloneContext          // present only when mode is alone
@@ -256,7 +256,7 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     characters,
     pace,
     specific_detail,
-    tonights_want,
+    current_yearning,
     voyeur_context,
     alone_context,
     self_description,
@@ -373,17 +373,6 @@ Do not announce it — open in the middle of it, already happening.
     `.trim())
   }
 
-  // B. Emotional register — the most important signal
-  if (profile.emotional_register && profile.emotional_register.length > 0) {
-    const primaryFeel = profile.emotional_register[0]
-    const secondaryFeel = profile.emotional_register[1]
-    narrativeParts.push(`
-HOW SHE SHOULD FEEL:
-Primary: ${EMOTIONAL_REGISTER_GUIDANCE[primaryFeel]}
-${secondaryFeel ? `Secondary: ${EMOTIONAL_REGISTER_GUIDANCE[secondaryFeel]}` : ''}
-    `.trim())
-  }
-
   // B1. Age register — life-stage tonal calibration (optional, degrades gracefully)
   if (profile.age_band) {
     narrativeParts.push(getAgeRegister(profile.age_band))
@@ -491,14 +480,6 @@ ${characterLines}
 
 These are specific people, not types. Give each one at least one unexpected, particular detail beyond what is listed above.
     `.trim())
-  } else if (mode !== 'alone' && profile.desire_targets) {
-    // Fall back to profile-level desire_targets when no per-story roster
-    narrativeParts.push(`
-THE OTHER: ${profile.desire_targets}
-Let this description guide the character — but add texture. A type is a starting point, not a character.
-
-NAMING: Vary character names across genders, origins, and languages. Do not default to a narrow set of names. Use names appropriate to the story's setting and the character's implied background.
-    `.trim())
   } else if (mode !== 'alone') {
     // No roster, no profile targets — give naming guidance anyway
     narrativeParts.push(
@@ -507,11 +488,11 @@ NAMING: Vary character names across genders, origins, and languages. Do not defa
   }
 
   // E1. Tonight's want — highest-priority tone signal when present
-  if (tonights_want) {
+  if (current_yearning) {
     narrativeParts.push(`
-TONIGHT'S WANT (primary emphasis — this shapes the story above all other preferences):
-"${tonights_want}"
-This specific want should govern the story's tone and content more than any standing preference below.
+HER YEARNING (primary emphasis — this shapes the story above all other preferences):
+"${current_yearning}"
+This specific yearning should govern the story's tone and content more than any standing preference below.
     `.trim())
   }
 
@@ -519,7 +500,7 @@ This specific want should govern the story's tone and content more than any stan
   if (profile.three_words) {
     narrativeParts.push(`
 THE FEELING IN THREE WORDS: ${profile.three_words.join(' · ')}
-${tonights_want ? 'Let these words colour the background — the want above takes precedence.' : 'Let these words govern the story\'s rhythm, temperature, and movement.'}
+${current_yearning ? 'Let these words colour the background — the want above takes precedence.' : 'Let these words govern the story\'s rhythm, temperature, and movement.'}
     `.trim())
   }
 

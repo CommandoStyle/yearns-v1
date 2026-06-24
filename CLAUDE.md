@@ -6,7 +6,7 @@
 
 ---
 
-## What this is
+## What this is (original)
 
 Yearns is an AI-powered personalised erotic fiction platform for adult women.
 It generates bespoke stories on demand, shaped by a deep user desire profile.
@@ -14,7 +14,87 @@ It generates bespoke stories on demand, shaped by a deep user desire profile.
 **Tagline:** "Your intimate erotic fantasies. In words. In context. Anytime."
 
 **Positioning:** Tasteful, stylish, literary. Not crude. Not male-gaze.
-Think: Tom Ford perfume ad aesthetic, Playfair Display typography, deep plum palette.
+Think: Tom Ford perfume ad aesthetic, Curated luxe typography, high-fashion editorial minimalist colour palette.
+
+# Yearns — What this is (north star reference)
+
+> Add this to CLAUDE.md as a permanent section, alongside the ADRs. When
+> any future decision is unclear — a prompt instruction, a UI tone choice,
+> a feature scope question — return to this page before guessing.
+
+---
+
+## The one sentence
+
+**Yearns is in the tastefully written — regardless of how explicit —
+here-and-now erotica business.**
+
+Every word in that sentence is load-bearing. Not "AI erotica." Not
+"adult content platform." Tastefully written, regardless of how
+explicit, here and now.
+
+---
+
+## What each part of the sentence actually means
+
+**"Tastefully written"** — the craft bar is literary fiction that
+happens to be explicit, not pornography that happens to use sentences.
+Interiority over inventory. Specificity over cliché. Psychological
+seriousness about desire, not titillation-as-efficiency. This is the
+standard the craft documents, the vocabulary blacklists, and the AI-tic
+suppression work all exist to protect — quality is not a nice-to-have
+layered on top of the product, it is the product.
+
+**"Regardless of how explicit"** — explicitness is a dial the reader
+controls, not a moral gradient Yearns judges her on. Tier 4 deserves the
+same craft attention as tier 1. A story is never "lesser" for being more
+explicit, and the writing should never get lazier as it gets hotter.
+This is also why hard limits exist: not as a brake on what's permitted,
+but as the fixed boundary that makes everything inside it judgment-free.
+One person's pleasure is another person's perversion — Yearns doesn't
+adjudicate that, it just holds the line at genuine harm and stays out of
+the way everywhere else.
+
+**"Here and now"** — the reader's own world, her own present moment,
+populated by people and settings she recognizes. Not fantasy kingdoms,
+not period drama, not speculative futures. This is a craft decision as
+much as a brand one: short-form personalised fiction doesn't have the
+length budget for world-building, so Yearns doesn't try to compete on
+genres that need it. It owns the register that needs none.
+
+**"Erotica," not "content"** — Yearns makes literature, with a reader,
+a craft tradition, and a standard of attention behind it. "Content" is
+manufactured to spec. Erotica, done properly, is written.
+
+---
+
+## What this sentence rules out, explicitly
+
+- Generic, clinical, or "AI-flavored" prose at any tier
+- Treating any explicitness level as inherently lower-quality or less
+  deserving of craft
+- Genre sprawl (fantasy, historical, sci-fi) that the format can't
+  actually support well
+- Judging or gating any consensual fantasy category for reasons of taste
+  rather than genuine hard-limit harm
+- Plagiarism or close voice-imitation of named authors — influence at
+  the level of technique and sensibility, never reproduction
+- Treating quality as separable from the product rather than as the
+  product itself
+
+## What this sentence protects, going forward
+
+Any time a new feature, prompt instruction, or product decision creates
+tension with this sentence, the sentence wins. If a shortcut would make
+output faster or cheaper but less tasteful — no. If a content category
+is fully legal and consensual but the team's instinct is to bury it out
+of unexamined discomfort rather than genuine taste — examine that
+instinct rather than defaulting to it. If "here and now" starts drifting
+back toward genre sprawl for growth reasons — that's a deliberate
+ADR-level decision to revisit (see ADR-003), not a quiet slide.
+
+This sentence is the test. Everything else in this project is the
+implementation of it.
 
 ---
 

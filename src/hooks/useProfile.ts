@@ -3,18 +3,15 @@
 import { useState, useCallback } from 'react'
 
 export interface ProfilePatch {
-  display_name?:         string
-  genre_weights?:        Record<string, number>
-  emotional_register?:   string[]
-  desire_targets?:       string
-  explicitness_default?: number
-  participant_mode?:     import('@/lib/prompt-engine').ParticipantMode
-  hard_limits?:          string[]
-  three_words?:          [string, string, string]
-  style_references?:     string[]
-  setting_preference?:   Record<string, number>
-  language?:             string
-  onboarding_complete?:  boolean
+  display_name?:           string
+  participant_mode?:       import('@/lib/prompt-engine').ParticipantMode
+  hard_limits?:            string[]
+  three_words?:            [string, string, string]
+  language?:               string
+  age_band?:               string
+  prose_rhythm?:           string
+  last_explicitness_used?: number
+  onboarding_complete?:    boolean
 }
 
 export interface UseProfileReturn {

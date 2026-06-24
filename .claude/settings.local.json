@@ -41,7 +41,11 @@
       "Bash(curl -s -X POST https://yearns-v1.vercel.app/api/generate -H \"Content-Type: application/json\" -d '{\"explicitness\":3}')",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://yearns-v1.vercel.app/manifest.webmanifest)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://yearns-v1.vercel.app/offline)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm build *)",
+      "Bash(git add *)",
+      "Bash(git push *)"
     ]
   }
 }

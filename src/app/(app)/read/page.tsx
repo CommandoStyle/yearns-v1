@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useYearn } from '@/hooks/useYearn'
-import { YearnControls } from '@/components/reader/YearnControls'
+import { YearnShaper } from '@/components/reader/YearnShaper'
 import { StoryReader } from '@/components/reader/StoryReader'
 import { UpgradePrompt } from '@/components/billing/UpgradePrompt'
-import { PreGenerationPanel } from '@/components/reader/PreGenerationPanel'
-import type { ExplicitnessLevel, DesireProfile } from '@/lib/prompt-engine'
+import { LipBiteRating } from '@/components/reader/LipBiteRating'
+import type { ExplicitnessLevel, DesireProfile, ParticipantMode } from '@/lib/prompt-engine'
 import type { GenerateParams } from '@/hooks/useYearn'
 
 export default function ReadPage() {
@@ -17,10 +17,10 @@ export default function ReadPage() {
   const { state, generate, cancel, reset, adjustExplicitness, midReadGenerate } = useYearn(authToken)
 
   const [currentExplicitness, setCurrentExplicitness] = useState<ExplicitnessLevel>(2)
-  const [pendingParams, setPendingParams]              = useState<GenerateParams | null>(null)
   const [lastParams, setLastParams]                    = useState<GenerateParams | null>(null)
   const [profile, setProfile]                         = useState<DesireProfile | null>(null)
   const [isPro, setIsPro]                             = useState(false)
+  const [showRating, setShowRating]                   = useState(false)
 
   // Fetch profile + subscription status on mount
   useEffect(() => {
@@ -34,25 +34,31 @@ export default function ReadPage() {
     }).catch(() => {})
   }, [authToken])
 
-  const defaultMode = profile?.participant_mode ?? 'participant'
+  // Show rating screen when generation completes
+  useEffect(() => {
+    if (state.status === 'done') {
+      setShowRating(true)
+    }
+  }, [state.status])
 
-  function handleRequestGenerate(params: GenerateParams) {
+  const defaultMode  = (profile?.participant_mode as ParticipantMode | undefined) ?? 'participant'
+  // Default dial to last-used explicitness level; fall back to Sensual (2) for new users
+  const defaultLevel = ((profile as (DesireProfile & { last_explicitness_used?: number }) | null)?.last_explicitness_used as ExplicitnessLevel | undefined) ?? 2
+
+  function handleGenerate(params: GenerateParams) {
     setCurrentExplicitness(params.explicitness)
-    setPendingParams(params)
-  }
-
-  function handlePanelConfirm(params: GenerateParams) {
     setLastParams(params)
-    setPendingParams(null)
+    setShowRating(false)
     generate(params)
-  }
 
-  function handlePanelSkip() {
-    if (!pendingParams) return
-    const params = pendingParams
-    setLastParams(params)
-    setPendingParams(null)
-    generate(params)
+    // Persist last-used explicitness level to profile
+    if (authToken) {
+      fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ last_explicitness_used: params.explicitness }),
+      }).catch(() => {})
+    }
   }
 
   function handleAdjustExplicitness(level: ExplicitnessLevel) {
@@ -66,7 +72,6 @@ export default function ReadPage() {
     prevLevel: ExplicitnessLevel,
   ) {
     setCurrentExplicitness(newLevel)
-    // Log mid-read signal — separate from pre-generation dial adjustment
     if (authToken) {
       fetch('/api/profile/signal', {
         method: 'POST',
@@ -79,7 +84,6 @@ export default function ReadPage() {
             read_progress_pct:  lastParams
               ? Math.round((frozenText.length / Math.max(state.text.length, 1)) * 100)
               : null,
-            // No story content logged
           },
           timestamp: Date.now(),
         }),
@@ -92,8 +96,8 @@ export default function ReadPage() {
   }
 
   function handleReset() {
-    setCurrentExplicitness(2)
-    setPendingParams(null)
+    setCurrentExplicitness(defaultLevel)
+    setShowRating(false)
     reset()
   }
 
@@ -102,10 +106,12 @@ export default function ReadPage() {
 
   return (
     <main>
-      {isIdle && !pendingParams && (
-        <YearnControls
-          onGenerate={handleRequestGenerate}
-          defaultLevel={currentExplicitness}
+      {isIdle && (
+        <YearnShaper
+          onGenerate={handleGenerate}
+          defaultMode={defaultMode}
+          defaultLevel={defaultLevel}
+          authToken={authToken}
         />
       )}
 
@@ -134,16 +140,13 @@ export default function ReadPage() {
         />
       )}
 
-      {pendingParams && (
-        <PreGenerationPanel
-          baseParams={pendingParams}
-          defaultMode={defaultMode}
-          onConfirm={handlePanelConfirm}
-          onSkip={handlePanelSkip}
+      {showRating && state.status === 'done' && (
+        <LipBiteRating
           authToken={authToken}
+          sessionCount={0}
+          onDismiss={() => setShowRating(false)}
         />
       )}
     </main>
   )
 }
-

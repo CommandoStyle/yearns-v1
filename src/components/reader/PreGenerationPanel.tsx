@@ -119,7 +119,7 @@ export function PreGenerationPanel({
   const [showSparks, setShowSparks]     = useState(false)
   const [pace, setPace]                 = useState<1 | 2 | 3>(2)
   const [specificDetail, setSpecificDetail] = useState('')
-  const [tonightsWant, setTonightsWant]     = useState('')
+  const [currentYearning, setCurrentYearning] = useState('')
 
   // ── Participant-mode: character roster ─────────────────────────────────────
   const [characters, setCharacters] = useState<CharacterConfig[]>([emptyCharacter()])
@@ -215,7 +215,7 @@ export function PreGenerationPanel({
     if (activeCharacters.length)    signal('characters_configured',      { count: activeCharacters.length })
     if (pace !== 2)                 signal('pace_selected',              { pace })
     if (specificDetail.trim())      signal('specific_detail_used',       {})
-    if (tonightsWant.trim())        signal('tonights_want_used',         {})
+    if (currentYearning.trim())     signal('current_yearning_used',      {})
     if (mode !== defaultMode)       signal('participant_mode_overridden', { mode })
     if (mode === 'voyeur' && activePosition) signal('voyeur_context_used', { channel: perceptualChannel })
     if (mode === 'alone')           signal('alone_mode_used',            { focus: aloneFocus, discovery_risk: discoveryRisk })
@@ -237,7 +237,7 @@ export function PreGenerationPanel({
       characters:                mode !== 'alone' && activeCharacters.length ? activeCharacters : undefined,
       pace,
       specific_detail:           specificDetail.trim() || undefined,
-      tonights_want:             tonightsWant.trim() || undefined,
+      current_yearning:          currentYearning.trim() || undefined,
       participant_mode_override: mode !== defaultMode ? mode : undefined,
       voyeur_context:            voyeurContext,
       alone_context:             aloneContext,
@@ -761,16 +761,16 @@ export function PreGenerationPanel({
 
           {/* Tonight's want */}
           <div className="space-y-2">
-            <p className="text-gray-500 text-xs tracking-widest uppercase">What do you want from tonight?</p>
+            <p className="text-gray-500 text-xs tracking-widest uppercase">What&apos;s your yearning?</p>
             <textarea
               maxLength={120}
-              value={tonightsWant}
-              onChange={e => setTonightsWant(e.target.value)}
+              value={currentYearning}
+              onChange={e => setCurrentYearning(e.target.value)}
               placeholder="to feel completely wanted, to lose track of time, to be surprised…"
               rows={2}
               className="w-full bg-transparent border-b border-gray-200 focus:border-gray-500 outline-none text-sm text-gray-800 placeholder:text-gray-300 py-1.5 resize-none transition-colors duration-200 leading-relaxed"
             />
-            <p className="text-right text-gray-300 text-xs">{tonightsWant.length}/120</p>
+            <p className="text-right text-gray-300 text-xs">{currentYearning.length}/120</p>
           </div>
 
           {/* CTAs */}

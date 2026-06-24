@@ -4,41 +4,29 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AgeStep }      from './steps/AgeStep'
 import { NameStep }     from './steps/NameStep'
-import { FeelStep }     from './steps/FeelStep'
-import { DesireStep }   from './steps/DesireStep'
-import { SettingStep }  from './steps/SettingStep'
+import { AgeBandStep }  from './steps/AgeBandStep'
 import { LanguageStep } from './steps/LanguageStep'
 import type { SupportedLanguage } from '@/lib/prompt-engine'
+import type { AgeBand } from '@/lib/age-registers'
 import { GeneratingScreen } from './GeneratingScreen'
 import { useProfile } from '@/hooks/useProfile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OnboardingData {
-  display_name:       string
-  emotional_register: string[]
-  desire_targets:     string
-  settings:           string[]
-  language:           SupportedLanguage
+  display_name: string
+  age_band:     AgeBand | null
+  language:     SupportedLanguage
 }
 
 const EMPTY: OnboardingData = {
-  display_name:       '',
-  emotional_register: [],
-  desire_targets:     '',
-  settings:           [],
-  language:           'en',
+  display_name: '',
+  age_band:     null,
+  language:     'en',
 }
 
 interface OnboardingFlowProps {
   authToken: string
-}
-
-// ─── Weight helpers ───────────────────────────────────────────────────────────
-
-function settingWeights(settings: string[]): Record<string, number> {
-  const w = [0.8, 0.5]
-  return Object.fromEntries(settings.map((s, i) => [s, w[i] ?? 0.5]))
 }
 
 // ─── Progress dots ────────────────────────────────────────────────────────────
@@ -90,10 +78,8 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
 
     const success = await update(
       {
-        display_name:        finalData.display_name   || undefined,
-        emotional_register:  finalData.emotional_register.length > 0 ? finalData.emotional_register : undefined,
-        desire_targets:      finalData.desire_targets || undefined,
-        setting_preference:  finalData.settings.length > 0 ? settingWeights(finalData.settings) : undefined,
+        display_name:        finalData.display_name || undefined,
+        age_band:            finalData.age_band    || undefined,
         language:            finalData.language,
         onboarding_complete: true,
       },
@@ -110,7 +96,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
 
   if (saving) return <GeneratingScreen />
 
-  const TOTAL = 6  // age + name + feel + desire + setting + language
+  const TOTAL = 4  // age + name + age band + language
 
   switch (step) {
     case 1:
@@ -136,9 +122,8 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={3} />
-          <FeelStep
-            initialValue={data.emotional_register}
-            onNext={emotional_register => { patch({ emotional_register }); setStep(4) }}
+          <AgeBandStep
+            onNext={age_band => { patch({ age_band }); setStep(4) }}
             onBack={() => setStep(2)}
           />
         </>
@@ -148,30 +133,6 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
       return (
         <>
           <ProgressDots total={TOTAL} current={4} />
-          <DesireStep
-            initialValue={data.desire_targets}
-            onNext={desire_targets => { patch({ desire_targets }); setStep(5) }}
-            onBack={() => setStep(3)}
-          />
-        </>
-      )
-
-    case 5:
-      return (
-        <>
-          <ProgressDots total={TOTAL} current={5} />
-          <SettingStep
-            initialValue={data.settings}
-            onNext={settings => { patch({ settings }); setStep(6) }}
-            onBack={() => setStep(4)}
-          />
-        </>
-      )
-
-    case 6:
-      return (
-        <>
-          <ProgressDots total={TOTAL} current={6} />
           <LanguageStep
             initialValue={data.language}
             onNext={language => {
@@ -179,7 +140,7 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
               patch({ language })
               handleComplete(finalData)
             }}
-            onBack={() => setStep(5)}
+            onBack={() => setStep(3)}
           />
           {error && (
             <p className="fixed bottom-6 inset-x-0 text-center text-gray-900/50 text-sm">

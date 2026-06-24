@@ -89,7 +89,7 @@ interface GenerateBody {
   characters?: import('@/lib/prompt-engine').CharacterConfig[]
   pace?: 1 | 2 | 3
   specific_detail?: string
-  tonights_want?: string
+  current_yearning?: string
   participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
   voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
   alone_context?: import('@/lib/prompt-engine').AloneContext
@@ -119,7 +119,7 @@ function validateBody(body: unknown): GenerateBody | null {
     characters:                Array.isArray(b.characters) ? sanitiseCharacters(b.characters) : undefined,
     pace:                      [1,2,3].includes(b.pace as number) ? b.pace as 1|2|3 : undefined,
     specific_detail:           typeof b.specific_detail === 'string' ? b.specific_detail.slice(0, 60) : undefined,
-    tonights_want:             typeof b.tonights_want === 'string' ? b.tonights_want.slice(0, 120) : undefined,
+    current_yearning:             typeof b.current_yearning === 'string' ? b.current_yearning.slice(0, 120) : undefined,
     participant_mode_override: b.participant_mode_override as import('@/lib/prompt-engine').ParticipantMode | undefined,
     voyeur_context:            isVoyeurContext(b.voyeur_context) ? b.voyeur_context : undefined,
     alone_context:             isAloneContext(b.alone_context) ? b.alone_context : undefined,
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     characters:                body.characters,
     pace:                      body.pace,
     specific_detail:           body.specific_detail,
-    tonights_want:             body.tonights_want,
+    current_yearning:             body.current_yearning,
     participant_mode_override: body.participant_mode_override,
     voyeur_context:            body.voyeur_context,
     alone_context:             body.alone_context,
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     ...(uniqueRoleCategories.length    && { character_roles_used: uniqueRoleCategories }),
     ...(body.pace                      && { pace: body.pace }),
     ...(body.specific_detail           && { specific_detail: true }),
-    ...(body.tonights_want             && { tonights_want: true }),
+    ...(body.current_yearning             && { current_yearning: true }),
     ...(body.participant_mode_override && { participant_override: body.participant_mode_override }),
     ...(body.voyeur_context            && {
           voyeur_context_used: true,

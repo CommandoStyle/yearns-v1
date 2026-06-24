@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import type { Database, Json } from '@/types/database'
+import type { Database } from '@/types/database'
 
 export const runtime = 'edge'
 
@@ -52,21 +52,17 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const userId = auth.user.id
 
-  const { data: profile, error } = await auth.supabase.rpc('upsert_desire_profile', {
-    p_user_id:               userId,
-    p_display_name:          (body.display_name as string)           ?? null,
-    p_genre_weights:         (body.genre_weights as Json)             ?? null,
-    p_emotional_register:    (body.emotional_register as string[])   ?? null,
-    p_desire_targets:        (body.desire_targets as string)         ?? null,
-    p_explicitness_default:  (body.explicitness_default as number)   ?? null,
-    p_participant_mode:      (body.participant_mode as string)       ?? null,
-    p_hard_limits:           (body.hard_limits as string[])          ?? null,
-    p_three_words:           (body.three_words as string[])          ?? null,
-    p_style_references:      (body.style_references as string[])     ?? null,
-    p_setting_preference:    (body.setting_preference as Json)        ?? null,
-    p_language:              (body.language as string)               ?? null,
-    p_age_band:              (body.age_band as string)               ?? null,
-    p_prose_rhythm:          (body.prose_rhythm as string)           ?? null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile, error } = await (auth.supabase as any).rpc('upsert_desire_profile', {
+    p_user_id:            userId,
+    p_display_name:       (body.display_name  as string)   ?? null,
+    p_language:           (body.language      as string)   ?? null,
+    p_three_words:        (body.three_words   as string[]) ?? null,
+    p_hard_limits:        (body.hard_limits   as string[]) ?? null,
+    p_participant_mode:   (body.participant_mode as string) ?? null,
+    p_age_band:           (body.age_band      as string)   ?? null,
+    p_prose_rhythm:       (body.prose_rhythm  as string)   ?? null,
+    p_last_explicitness:  (body.last_explicitness_used as number) ?? null,
   })
 
   if (error) {

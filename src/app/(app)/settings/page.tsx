@@ -454,6 +454,17 @@ export default function SettingsPage() {
         <p className="mt-1 text-gray-900/30 text-sm">Build a recurring cast for your Yearns.</p>
       </section>
 
+      {/* Build your profile */}
+      <section className="pt-6 border-t border-gray-900/8">
+        <Link
+          href="/profile/build"
+          className="text-gray-900/45 text-xs tracking-widest uppercase hover:text-gray-900/70 transition-colors"
+        >
+          Build your profile →
+        </Link>
+        <p className="mt-1 text-gray-900/30 text-sm">Tell us more about your yearnings — shapes every story.</p>
+      </section>
+
       {/* Sign out */}
       <section className="pt-6 border-t border-gray-900/8">
         <button

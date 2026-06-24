@@ -75,7 +75,7 @@ export interface GenerateParams {
   characters?: import('@/lib/prompt-engine').CharacterConfig[]
   pace?: 1 | 2 | 3
   specific_detail?: string
-  tonights_want?: string
+  current_yearning?: string
   participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
   voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
   alone_context?: import('@/lib/prompt-engine').AloneContext
