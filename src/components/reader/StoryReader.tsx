@@ -1,9 +1,21 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { ExplicitnessDial } from './ExplicitnessDial'
 import type { YearnState } from '@/hooks/useYearn'
 import type { ExplicitnessLevel } from '@/lib/prompt-engine'
+
+// Convert *word* markdown italic markers to <em> elements.
+// Handles mid-word asterisks (e.g. *oh,* or *yes.*) correctly by
+// matching the innermost content between asterisks.
+function renderWord(word: string): React.ReactNode {
+  if (!word.includes('*')) return word
+  const parts = word.split('*')
+  // Odd-indexed parts are inside asterisk pairs → italic
+  return parts.map((part, idx) =>
+    idx % 2 === 1 ? <em key={idx}>{part}</em> : part
+  )
+}
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'pro_required'
 
@@ -193,7 +205,7 @@ export function StoryReader({
                     >
                       {words.map((word, j) => (
                         <span key={`${i}-${j}`} className="yn-word">
-                          {j > 0 && ' '}{word}
+                          {j > 0 && ' '}{renderWord(word)}
                         </span>
                       ))}
                     </div>
