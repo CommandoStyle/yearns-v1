@@ -6,6 +6,7 @@
 // Soft cap: 8 non-self members with a friendly message, not a hard block.
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useCast } from '@/hooks/useCast'
 import { SelfDescriptionFlow } from '@/components/cast/SelfDescriptionFlow'
@@ -19,6 +20,7 @@ export default function CastPage() {
   const authToken                     = session?.access_token ?? null
   const { cast, selfRow, loading, load, save, update, remove } = useCast()
 
+  const router                         = useRouter()
   const [view, setView]               = useState<'list' | 'self' | 'add' | 'edit'>('list')
   const [editing, setEditing]         = useState<CastCharacterRow | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -52,7 +54,16 @@ export default function CastPage() {
   if (view === 'list') {
     return (
       <div className="max-w-lg mx-auto px-6 py-12 space-y-10">
+        <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl text-gray-900">Your cast</h1>
+        <button
+          onClick={() => router.back()}
+          className="text-gray-400 hover:text-gray-700 transition-colors text-sm"
+          aria-label="Back to settings"
+        >
+          ✕
+        </button>
+      </div>
 
         {/* Self entry — visually distinct */}
         <div className="space-y-3">

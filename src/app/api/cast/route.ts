@@ -83,15 +83,34 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (isSelf) {
-    // Upsert the self row — partial unique index ensures at most one per user.
-    // On conflict (user already has a self row) update in place.
+    // The partial unique index (user_id WHERE is_self=true) can't be used with
+    // Supabase's .upsert() onConflict parameter — partial indexes aren't resolved
+    // that way. Use check-then-insert-or-update instead.
+    const { data: existing } = await auth.supabase
+      .from('cast_characters')
+      .select('id')
+      .eq('user_id', auth.user.id)
+      .eq('is_self', true)
+      .single()
+
+    if (existing?.id) {
+      const { data, error } = await auth.supabase
+        .from('cast_characters')
+        .update(row)
+        .eq('id', existing.id)
+        .select()
+        .single()
+      if (error) return Response.json({ error: 'save_failed' }, { status: 500 })
+      return Response.json({ character: data })
+    }
+
     const { data, error } = await auth.supabase
       .from('cast_characters')
-      .upsert(row, { onConflict: 'user_id', ignoreDuplicates: false })
+      .insert(row)
       .select()
       .single()
     if (error) return Response.json({ error: 'save_failed' }, { status: 500 })
-    return Response.json({ character: data })
+    return Response.json({ character: data }, { status: 201 })
   }
 
   const { data, error } = await auth.supabase

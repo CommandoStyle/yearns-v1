@@ -241,7 +241,16 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg mx-auto px-6 py-16 space-y-14">
 
-      <h1 className="font-serif text-3xl text-gray-900">Settings</h1>
+      <div className="flex items-start justify-between">
+        <h1 className="font-serif text-3xl text-gray-900">Settings</h1>
+        <button
+          onClick={() => router.back()}
+          className="text-gray-400 hover:text-gray-700 transition-colors text-sm mt-1"
+          aria-label="Close settings"
+        >
+          ✕
+        </button>
+      </div>
 
       {/* Passkeys section */}
       {supportsPasskeys && (
