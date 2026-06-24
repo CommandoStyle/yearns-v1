@@ -11,24 +11,29 @@ export const runtime = 'edge'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@/lib/supabase'
+
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  )
+}
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify the caller is authenticated
-    const supabase = createServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    // Read JWT from Authorization header (same pattern as all other routes).
+    // createServerClient().getSession() doesn't work on edge — no cookies.
+    const jwt = req.headers.get('Authorization')?.slice(7)
+    if (!jwt) {
       return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
     }
 
-    // Use service role to write age_verified — the users table may have RLS
-    // that prevents self-updates to this column (it's set by Veriff webhook, not the user)
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const admin = getAdmin()
+    const { data: { user }, error: authError } = await admin.auth.getUser(jwt)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+    }
 
     const { error } = await admin
       .from('users')
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
         age_verified_at:     new Date().toISOString(),
         age_verified_method: 'self_declaration_temp',
       })
-      .eq('id', session.user.id)
+      .eq('id', user.id)
 
     if (error) {
       console.error('[yearns/verify-age] update error:', error)

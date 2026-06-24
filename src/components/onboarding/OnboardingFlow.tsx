@@ -76,7 +76,10 @@ export function OnboardingFlow({ authToken }: OnboardingFlowProps) {
   async function handleAgeConfirmed(_dob: string) {
     await fetch('/api/auth/verify-age', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
     })
     setStep(2)
   }
