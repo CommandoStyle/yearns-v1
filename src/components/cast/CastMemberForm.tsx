@@ -6,19 +6,8 @@
 
 import { useState } from 'react'
 import type { CastCharacterRow } from '@/types/cast'
-
-const TRAITS = [
-  'the way he listens before he speaks',
-  'unbothered, unreadable',
-  'good with his hands and knows it',
-  'says less than he means',
-  'quietly certain of himself',
-  'takes his time',
-  'notices things other people miss',
-  'knows exactly what he wants',
-  'comfortable with silence',
-  'gentle until he isn\'t',
-]
+import { getTraitsForGender } from '@/lib/character-traits'
+import type { CharacterGender } from '@/lib/character-traits'
 
 const ROLES_ESTABLISHED   = ['husband', 'boyfriend', 'wife', 'girlfriend', 'long-term partner']
 const ROLES_SERVICE       = ['plumber', 'personal trainer', 'masseuse', 'real estate agent', 'delivery driver']
@@ -33,10 +22,17 @@ interface CastMemberFormProps {
 
 export function CastMemberForm({ initial, onSave, onCancel }: CastMemberFormProps) {
   const [name,    setName]    = useState(initial?.name   ?? '')
-  const [gender,  setGender]  = useState<'man' | 'woman' | 'unspecified'>(
-    (initial?.gender as 'man' | 'woman' | 'unspecified') ?? 'unspecified'
+  const [gender,  setGender]  = useState<CharacterGender>(
+    (initial?.gender as CharacterGender) ?? 'unspecified'
   )
   const [traits,  setTraits]  = useState<string[]>(initial?.traits ?? [])
+
+  function handleGenderChange(g: CharacterGender) {
+    setGender(g)
+    // Clear selected traits — resolved strings are gender-specific and won't
+    // match the new gender's resolved list.
+    setTraits([])
+  }
   const [role,    setRole]    = useState(initial?.role   ?? '')
   const [roleFree, setRoleFree] = useState('')
   const [showMore, setShowMore] = useState(false)
@@ -79,7 +75,7 @@ export function CastMemberForm({ initial, onSave, onCancel }: CastMemberFormProp
           {(['man', 'woman', 'unspecified'] as const).map(g => (
             <button
               key={g}
-              onClick={() => setGender(g)}
+              onClick={() => handleGenderChange(g)}
               className={`flex-1 py-2 text-xs border rounded-sm transition-colors ${
                 gender === g
                   ? 'border-gray-900 text-gray-900 bg-gray-50'
@@ -96,7 +92,7 @@ export function CastMemberForm({ initial, onSave, onCancel }: CastMemberFormProp
       <div className="space-y-2">
         <p className="text-gray-900/50 text-xs tracking-widest uppercase">Traits (up to 2)</p>
         <div className="flex flex-wrap gap-2">
-          {TRAITS.map(t => (
+          {getTraitsForGender(gender).map(t => (
             <button
               key={t}
               onClick={() => toggleTrait(t)}

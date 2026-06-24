@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import type { GenerateParams } from '@/hooks/useYearn'
 import type { AloneContext, CharacterConfig, ParticipantMode, PerceptualChannel } from '@/lib/prompt-engine'
 import type { CastCharacterRow } from '@/types/cast'
+import { getTraitsForGender } from '@/lib/character-traits'
+import type { CharacterGender } from '@/lib/character-traits'
 
 // ─── Curated content ──────────────────────────────────────────────────────────
 // Sparks are present-day / real-world scenarios (ADR-003 — here and now).
@@ -28,18 +30,7 @@ const SPARKS: string[] = [
   'a chance meeting that felt like fate',
 ]
 
-const TRAITS = [
-  'the way he listens before he speaks',
-  'unbothered, unreadable',
-  'good with his hands and knows it',
-  'says less than he means',
-  'quietly certain of himself',
-  'takes his time',
-  'notices things other people miss',
-  'knows exactly what he wants',
-  'comfortable with silence',
-  'gentle until he isn\'t',
-]
+// Trait list is gender-aware — rendered per-character via getTraitsForGender().
 
 const PACE_OPTIONS: { value: 1 | 2 | 3; label: string; sub: string }[] = [
   { value: 1, label: 'Lingering',   sub: 'slow burn, let it ache' },
@@ -620,7 +611,7 @@ export function PreGenerationPanel({
                       {(['man', 'woman', 'unspecified'] as const).map(g => (
                         <button
                           key={g}
-                          onClick={() => updateCharacter(char.id, { gender: g })}
+                          onClick={() => updateCharacter(char.id, { gender: g as CharacterGender, traits: [] })}
                           className={`flex-1 py-2 text-xs border rounded-sm transition-colors duration-200 ${
                             (char.gender ?? 'unspecified') === g
                               ? 'border-gray-900 text-gray-900 bg-gray-50'
@@ -634,7 +625,7 @@ export function PreGenerationPanel({
 
                     {/* Traits */}
                     <div className="flex flex-wrap gap-2">
-                      {TRAITS.map(t => (
+                      {getTraitsForGender((char.gender ?? 'unspecified') as CharacterGender).map(t => (
                         <button
                           key={t}
                           onClick={() => toggleTrait(char.id, t)}
