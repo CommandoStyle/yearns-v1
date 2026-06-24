@@ -27,15 +27,6 @@ export type ParticipantMode = 'participant' | 'voyeur' | 'alone'
 // voyeur      = third-person camera, user is not in the story
 // alone       = no second character; scene is purely internal/sensory
 
-export type Genre =
-  | 'contemporary'
-  | 'historical'
-  | 'fantasy'
-  | 'scifi'
-  | 'romantic'
-  | 'dark'
-  | 'surprise'
-
 export type EmotionalRegister =
   | 'desired'
   | 'powerful'
@@ -49,7 +40,9 @@ export type EmotionalRegister =
 export interface DesireProfile {
   // From onboarding
   display_name?: string
-  genre_weights?: Partial<Record<Genre, number>>    // 0.0–1.0 per genre
+  // genre_weights: DEPRECATED per ADR-003 (Here and Now positioning, 2026-06).
+  // No longer read by buildPrompt(). Column retained in DB for rollback safety.
+  genre_weights?: Record<string, number>
   emotional_register?: EmotionalRegister[]           // ordered by preference
   desire_targets?: string                            // free text: "a man, powerful, older"
   explicitness_default?: ExplicitnessLevel
@@ -61,6 +54,7 @@ export interface DesireProfile {
   style_references?: string[]                        // e.g. ["Atonement library scene", "Rebecca"]
   setting_preference?: Partial<Record<SettingType, number>>
   language?: SupportedLanguage
+  age_band?: import('@/lib/age-registers').AgeBand   // optional life-stage register calibration
 }
 
 export type SettingType =
@@ -168,16 +162,6 @@ const EXPLICITNESS_GUIDANCE: Record<ExplicitnessLevel, string> = {
       not a failure.`,
 }
 
-const GENRE_WORLD: Record<Genre, string> = {
-  contemporary: 'The present day, recognisable and real. Ordinary life with extraordinary charge.',
-  historical: 'A specific past era — its manners, its tensions, its repressions and freedoms.',
-  fantasy: 'A world with magic, myth, or creatures. Rules exist, but they are not ours.',
-  scifi: 'The future, or a technological present. Distance, isolation, and intimacy in new forms.',
-  romantic: 'A world governed by emotional logic. Connection is the engine. Feeling is everything.',
-  dark: 'Moral ambiguity, power imbalance, transgression, shadow. Not without consent — but not comfortable either.',
-  surprise: 'You choose the world. Surprise the reader.',
-}
-
 const EMOTIONAL_REGISTER_GUIDANCE: Record<EmotionalRegister, string> = {
   desired: 'The protagonist should feel unmistakably wanted — chosen, seen, pursued with intention.',
   powerful: 'The protagonist is in command. Others respond to her. She sets the terms.',
@@ -223,6 +207,7 @@ ABSOLUTE LIMITS — these override every other instruction in this prompt:
 
 import { CRAFT_SUPPLEMENT } from '@/lib/craft-correction-supplement'
 import { getLanguageRegister } from '@/lib/language-registers'
+import { getAgeRegister } from '@/lib/age-registers'
 
 // ─── Core assembler ───────────────────────────────────────────────────────────
 
@@ -345,13 +330,11 @@ ${pacingGuidance}
 
   const narrativeParts: string[] = []
 
-  // A. Genre and world
-  const topGenre = getTopGenre(profile.genre_weights)
-  if (topGenre) {
-    narrativeParts.push(`
-WORLD: ${GENRE_WORLD[topGenre]}
-    `.trim())
-  }
+  // A. Here-and-now grounding (ADR-003 — replaces per-genre GENRE_WORLD)
+  // A single fixed instruction anchors the model in the reader's real world.
+  narrativeParts.push(
+    'WORLD: The present day — the reader\'s own world, recognisable and immediate. Not a fantasy, historical, or speculative setting.'
+  )
 
   // A1. Opening moment (spark) — anchors the inciting scene
   if (spark && spark !== 'surprise_me') {
@@ -370,6 +353,11 @@ HOW SHE SHOULD FEEL:
 Primary: ${EMOTIONAL_REGISTER_GUIDANCE[primaryFeel]}
 ${secondaryFeel ? `Secondary: ${EMOTIONAL_REGISTER_GUIDANCE[secondaryFeel]}` : ''}
     `.trim())
+  }
+
+  // B1. Age register — life-stage tonal calibration (optional, degrades gracefully)
+  if (profile.age_band) {
+    narrativeParts.push(getAgeRegister(profile.age_band))
   }
 
   // C. Setting / atmosphere (augmented with specific_detail if provided)
@@ -558,16 +546,6 @@ The ending should feel complete but not closed — leave a breath of wanting.
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getTopGenre(
-  weights?: Partial<Record<Genre, number>>
-): Genre | undefined {
-  if (!weights) return undefined
-  const entries = Object.entries(weights) as [Genre, number][]
-  if (entries.length === 0) return undefined
-  return entries.sort(([, a], [, b]) => b - a)[0][0]
-}
 
 // ─── Example: assembled system prompt (for reference / testing) ───────────────
 

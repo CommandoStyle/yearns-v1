@@ -8,6 +8,16 @@ import {
 } from '@simplewebauthn/browser'
 import { createBrowserClient } from '@/lib/supabase'
 import type { SupportedLanguage } from '@/lib/prompt-engine'
+import type { AgeBand } from '@/lib/age-registers'
+
+const AGE_BANDS: { key: AgeBand; label: string }[] = [
+  { key: '18_24', label: 'My 20s' },
+  { key: '25_34', label: 'Late 20s / 30s' },
+  { key: '35_44', label: 'Late 30s / 40s' },
+  { key: '45_54', label: 'Late 40s / 50s' },
+  { key: '55_64', label: 'Late 50s / 60s' },
+  { key: '65_plus', label: '65 and beyond' },
+]
 
 const LANGUAGES: { key: SupportedLanguage; label: string; native: string }[] = [
   { key: 'en', label: 'English',  native: 'English'  },
@@ -37,12 +47,15 @@ export default function SettingsPage() {
   const [pwErr,          setPwErr]          = useState('')
   const [language,       setLanguage]       = useState<SupportedLanguage>('en')
   const [langStage,      setLangStage]      = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [ageBand,        setAgeBand]        = useState<AgeBand | null>(null)
+  const [ageStage,       setAgeStage]       = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
 
   const supportsPasskeys = typeof window !== 'undefined' && browserSupportsWebAuthn()
 
   useEffect(() => {
     loadCredentials()
     loadLanguage()
+    loadAgeBand()
   }, [])
 
   async function loadCredentials() {
@@ -54,6 +67,40 @@ export default function SettingsPage() {
       .order('created_at', { ascending: false })
     setCredentials(data ?? [])
     setLoadingCreds(false)
+  }
+
+  async function loadAgeBand() {
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const { data } = await supabase
+      .from('desire_profiles')
+      .select('age_band')
+      .eq('user_id', session.user.id)
+      .single()
+    const row = data as { age_band?: string } | null
+    if (row?.age_band) setAgeBand(row.age_band as AgeBand)
+  }
+
+  async function saveAgeBand(band: AgeBand) {
+    setAgeBand(band)
+    setAgeStage('saving')
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('no session')
+      const res = await fetch('/api/profile', {
+        method:  'PATCH',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ age_band: band }),
+      })
+      setAgeStage(res.ok ? 'done' : 'error')
+    } catch {
+      setAgeStage('error')
+    }
   }
 
   async function loadLanguage() {
@@ -277,6 +324,37 @@ export default function SettingsPage() {
 
         {langStage === 'done'  && <p className="text-gray-900/50 text-sm">Language updated.</p>}
         {langStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
+      </section>
+
+      {/* Which decade are you writing from */}
+      <section className="space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">Which decade are you writing from?</h2>
+          <p className="text-gray-900/40 text-sm">
+            Optional. Helps shape the tone and perspective of your Yearns. You can skip this.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {AGE_BANDS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => saveAgeBand(key)}
+              className={`py-3 px-4 text-left border transition-all duration-200 ${
+                ageBand === key
+                  ? 'border-gray-600/70 bg-gray-600/5'
+                  : 'border-gray-900/12 hover:border-gray-900/25'
+              }`}
+            >
+              <p className={`font-serif text-sm ${ageBand === key ? 'text-gray-600' : 'text-gray-900'}`}>
+                {label}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {ageStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
+        {ageStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
       {/* Sign out */}

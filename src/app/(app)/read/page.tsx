@@ -7,7 +7,7 @@ import { YearnControls } from '@/components/reader/YearnControls'
 import { StoryReader } from '@/components/reader/StoryReader'
 import { UpgradePrompt } from '@/components/billing/UpgradePrompt'
 import { PreGenerationPanel } from '@/components/reader/PreGenerationPanel'
-import type { ExplicitnessLevel, Genre, DesireProfile } from '@/lib/prompt-engine'
+import type { ExplicitnessLevel, DesireProfile } from '@/lib/prompt-engine'
 import type { GenerateParams } from '@/hooks/useYearn'
 
 export default function ReadPage() {
@@ -34,7 +34,6 @@ export default function ReadPage() {
     }).catch(() => {})
   }, [authToken])
 
-  const topGenre = getTopGenre(profile?.genre_weights)
   const defaultMode = profile?.participant_mode ?? 'participant'
 
   function handleRequestGenerate(params: GenerateParams) {
@@ -138,7 +137,6 @@ export default function ReadPage() {
       {pendingParams && (
         <PreGenerationPanel
           baseParams={pendingParams}
-          topGenre={topGenre}
           defaultMode={defaultMode}
           onConfirm={handlePanelConfirm}
           onSkip={handlePanelSkip}
@@ -149,9 +147,3 @@ export default function ReadPage() {
   )
 }
 
-function getTopGenre(weights?: Partial<Record<Genre, number>>): Genre | undefined {
-  if (!weights) return undefined
-  const entries = Object.entries(weights) as [Genre, number][]
-  if (!entries.length) return undefined
-  return entries.sort(([, a], [, b]) => b - a)[0][0]
-}

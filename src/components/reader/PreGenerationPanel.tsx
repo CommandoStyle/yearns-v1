@@ -2,27 +2,29 @@
 
 import { useState } from 'react'
 import type { GenerateParams } from '@/hooks/useYearn'
-import type { AloneContext, CharacterConfig, Genre, ParticipantMode, PerceptualChannel } from '@/lib/prompt-engine'
+import type { AloneContext, CharacterConfig, ParticipantMode, PerceptualChannel } from '@/lib/prompt-engine'
 
 // ─── Curated content ──────────────────────────────────────────────────────────
+// Sparks are present-day / real-world scenarios (ADR-003 — here and now).
+// Genre arrays removed; all sparks are now treated as equally weighted.
 
-const SPARKS: { text: string; genres: Genre[] }[] = [
-  { text: 'a text that shouldn\'t have been sent',       genres: ['contemporary', 'romantic'] },
-  { text: 'running into him again, somewhere unexpected', genres: ['contemporary', 'romantic'] },
-  { text: 'the morning after',                           genres: ['contemporary', 'dark'] },
-  { text: 'working late — just the two of them',         genres: ['contemporary', 'workplace'] as Genre[] },
-  { text: 'coming home to find him waiting',             genres: ['contemporary', 'romantic'] },
-  { text: 'a secret finally said out loud',              genres: ['romantic', 'dark'] },
-  { text: 'a look that said everything',                 genres: ['romantic', 'contemporary'] },
-  { text: 'a dance that lasted too long',                genres: ['romantic', 'historical'] },
-  { text: 'a letter delivered by mistake',               genres: ['historical', 'romantic'] },
-  { text: 'two strangers, one storm',                    genres: ['historical', 'fantasy'] },
-  { text: 'a debt repaid in an unexpected way',          genres: ['dark', 'historical'] },
-  { text: 'the night before everything changed',         genres: ['dark', 'scifi'] },
-  { text: 'a door left open',                            genres: ['contemporary', 'dark'] },
-  { text: 'a touch that lasted a beat too long',         genres: ['romantic', 'contemporary'] },
-  { text: 'the moment the rules stopped mattering',      genres: ['dark', 'fantasy'] },
-  { text: 'a chance meeting that felt like fate',        genres: ['romantic', 'scifi'] },
+const SPARKS: string[] = [
+  'a text that shouldn\'t have been sent',
+  'running into him again, somewhere unexpected',
+  'the morning after',
+  'working late — just the two of them',
+  'coming home to find him waiting',
+  'a secret finally said out loud',
+  'a look that said everything',
+  'a dance that lasted too long',
+  'a letter that arrived at the wrong moment',
+  'two strangers, one storm',
+  'a debt repaid in an unexpected way',
+  'the night before everything changed',
+  'a door left open',
+  'a touch that lasted a beat too long',
+  'the moment the rules stopped mattering',
+  'a chance meeting that felt like fate',
 ]
 
 const TRAITS = [
@@ -101,7 +103,6 @@ function emptyCharacter(): CharacterConfig {
 
 interface PreGenerationPanelProps {
   baseParams:    GenerateParams
-  topGenre?:     Genre
   defaultMode?:  ParticipantMode
   onConfirm:     (params: GenerateParams) => void
   onSkip:        () => void
@@ -112,7 +113,6 @@ interface PreGenerationPanelProps {
 
 export function PreGenerationPanel({
   baseParams,
-  topGenre,
   defaultMode = 'participant',
   onConfirm,
   onSkip,
@@ -148,12 +148,7 @@ export function PreGenerationPanel({
   const [discoveryRisk, setDiscoveryRisk]       = useState(false)
 
   // ── Spark helpers ──────────────────────────────────────────────────────────
-  const sortedSparks = [...SPARKS].sort((a, b) => {
-    const aMatch = topGenre && a.genres.includes(topGenre) ? -1 : 0
-    const bMatch = topGenre && b.genres.includes(topGenre) ? -1 : 0
-    return aMatch - bMatch
-  })
-  const visibleSparks = showAllSparks ? sortedSparks : sortedSparks.slice(0, 6)
+  const visibleSparks = showAllSparks ? SPARKS : SPARKS.slice(0, 6)
 
   // ── Character helpers ──────────────────────────────────────────────────────
   function updateCharacter(id: string, patch: Partial<CharacterConfig>) {
@@ -448,15 +443,15 @@ export function PreGenerationPanel({
                 <div className="flex flex-wrap gap-2">
                   {visibleSparks.map(s => (
                     <button
-                      key={s.text}
-                      onClick={() => { setSpark(prev => prev === s.text ? null : s.text); setSparkFreeText('') }}
+                      key={s}
+                      onClick={() => { setSpark(prev => prev === s ? null : s); setSparkFreeText('') }}
                       className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
-                        spark === s.text
+                        spark === s
                           ? 'border-gray-900 text-gray-900 bg-gray-50'
                           : 'border-gray-200 text-gray-500 hover:border-gray-400'
                       }`}
                     >
-                      {s.text}
+                      {s}
                     </button>
                   ))}
                   <button

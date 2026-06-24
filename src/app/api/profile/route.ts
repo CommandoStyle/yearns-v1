@@ -65,6 +65,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     p_style_references:      (body.style_references as string[])     ?? null,
     p_setting_preference:    (body.setting_preference as Json)        ?? null,
     p_language:              (body.language as string)               ?? null,
+    p_age_band:              (body.age_band as string)               ?? null,
   })
 
   if (error) {
