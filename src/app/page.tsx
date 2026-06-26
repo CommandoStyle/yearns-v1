@@ -22,7 +22,7 @@ export default function Home() {
             Begin
           </Link>
           <Link
-            href="/signup"
+            href="/login"
             className="text-gray-900/30 text-xs tracking-widest uppercase hover:text-gray-900/55 transition-colors duration-200"
           >
             Already have an account? Sign in
