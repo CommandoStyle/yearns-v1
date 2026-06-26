@@ -170,6 +170,20 @@ export default function BuildProfilePage() {
           {ageStage === 'error' && <p className="text-gray-900/45 text-sm">Could not save. Try again.</p>}
         </div>
 
+        {/* About you */}
+        <div className="space-y-3 pt-6 border-t border-gray-900/8">
+          <div>
+            <h2 className="text-gray-900/70 text-sm font-medium">About you</h2>
+            <p className="text-gray-400 text-xs mt-0.5">Optional physical details that can appear in your Yearns.</p>
+          </div>
+          <a
+            href="/profile/you"
+            className="text-gray-900/40 text-xs tracking-widest uppercase hover:text-gray-900/65 transition-colors"
+          >
+            Edit →
+          </a>
+        </div>
+
         {/* Your limits — last, as it's a negative/boundary option */}
         <div className="space-y-3 pt-6 border-t border-gray-900/8">
           <div>
