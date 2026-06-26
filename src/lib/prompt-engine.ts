@@ -384,7 +384,7 @@ SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to
   `.trim())
 
   // D. Protagonist / watcher / alone framing
-  const displayName = profile.display_name?.trim() || 'her'
+  const displayName = profile.display_name?.trim() || null
 
   if (mode === 'alone') {
     const focus = alone_context?.focus ?? 'solitude'
@@ -404,10 +404,16 @@ SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to
       : 'This is completely private. No risk of discovery — the focus is entirely internal and uninterrupted.'
 
     const selfClauseAlone = buildSelfDescriptionClause(self_description)
+    const aloneNameLine = displayName
+      ? `The reader is the protagonist. Her name is ${displayName} — use it. Do not replace it with "she" or "her" as a substitute for her name; use pronouns only where a name would feel unnatural in close succession.`
+      : `The reader is the protagonist. Write in close second-person — address her as "you", making this unmistakably her experience.`
+
     narrativeParts.push(`
 ALONE:
 
-This is a story about solitude, not absence. The reader is the entire scene — there is no one else, and the story should not gesture toward an implied missing partner. Write with full attention to physical sensation, internal narrative, and the specific texture of this private moment.${selfClauseAlone ? `\n\n${selfClauseAlone}` : ''}
+This is a story about solitude, not absence. The reader is the entire scene — there is no one else, and the story should not gesture toward an implied missing partner. Write with full attention to physical sensation, internal narrative, and the specific texture of this private moment.
+
+${aloneNameLine}${selfClauseAlone ? `\n\n${selfClauseAlone}` : ''}
 
 ${focusLine}
 
@@ -415,10 +421,14 @@ ${discoveryLine}
     `.trim())
   } else if (mode === 'participant') {
     const selfClause = buildSelfDescriptionClause(self_description)
+    // Name known: use close third-person with her specific name — not generic "she".
+    // Name unknown: use second-person ("you") so the story still feels personal.
+    const participantNameLine = displayName
+      ? `Her name is ${displayName}. Use it — not as a tag, but the way a writer uses a character's name: naturally, precisely, so it lands. Do not replace her name with "she" or "her" as a generic stand-in; use pronouns only where repeating the name would feel mechanical. Write in close third-person.`
+      : `Write in second-person ("you", "your") — there is no name to use, so address the reader directly. Make this unmistakably her experience.`
+
     narrativeParts.push(`
-PROTAGONIST: The reader is the protagonist. Her name is ${displayName}.
-Write in close third-person or second-person — she should feel that
-this is happening to her, that ${displayName} is unmistakably her.
+PROTAGONIST: The reader is the protagonist. ${participantNameLine}
 Her interior experience is primary.${selfClause ? `\n${selfClause}` : ''}
     `.trim())
   } else {
