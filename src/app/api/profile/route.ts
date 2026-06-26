@@ -63,6 +63,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     p_age_band:           (body.age_band      as string)   ?? null,
     p_prose_rhythm:       (body.prose_rhythm  as string)   ?? null,
     p_last_explicitness:  (body.last_explicitness_used as number) ?? null,
+    p_last_mode:          (body.last_mode_used as string)  ?? null,
+    p_last_length_mins:   (body.last_length_mins_used as number) ?? null,
+    p_country:            (body.country       as string)   ?? null,
   })
 
   if (error) {

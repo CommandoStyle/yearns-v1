@@ -79,6 +79,7 @@ export interface GenerateParams {
   participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
   voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
   alone_context?: import('@/lib/prompt-engine').AloneContext
+  outfit?: string
 }
 
 export interface UseYearnReturn {

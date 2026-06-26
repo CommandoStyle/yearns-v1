@@ -118,15 +118,30 @@ interface YearnShaperProps {
   onGenerate:       (params: GenerateParams) => void
   defaultMode?:     ParticipantMode
   defaultLevel?:    ExplicitnessLevel
+  defaultLength?:   number
   authToken:        string | null
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const OUTFIT_PLACEHOLDERS = [
+  'running shoes and leggings',
+  'an old band t-shirt',
+  'the robe you wear on Sunday mornings',
+  'nothing',
+  'jeans and a jumper',
+  'whatever you threw on this morning',
+]
+
+function pickOutfitPlaceholder(): string {
+  return OUTFIT_PLACEHOLDERS[Math.floor(Math.random() * OUTFIT_PLACEHOLDERS.length)]
+}
+
 export function YearnShaper({
   onGenerate,
   defaultMode   = 'participant',
   defaultLevel  = 2,
+  defaultLength,
   authToken,
 }: YearnShaperProps) {
 
@@ -134,7 +149,7 @@ export function YearnShaper({
   const [mode, setMode] = useState<ParticipantMode>(defaultMode)
 
   // 2. Duration
-  const [lengthSelection, setLengthSelection] = useState<number | 'surprise'>(10)
+  const [lengthSelection, setLengthSelection] = useState<number | 'surprise'>(defaultLength ?? 10)
 
   // 3. Current yearning
   const [currentYearning, setCurrentYearning] = useState('')
@@ -174,12 +189,21 @@ export function YearnShaper({
   // 8. Explicitness (defaults to last-used level via prop)
   const [explicitness, setExplicitness] = useState<ExplicitnessLevel>(defaultLevel)
 
+  // 9. Outfit
+  const [outfit, setOutfit]               = useState('')
+  const [wardrobeItems, setWardrobeItems] = useState<{id: string; description: string}[]>([])
+  const [outfitPlaceholder]               = useState(() => pickOutfitPlaceholder())
+
   // Fetch saved cast (non-self) once auth is available
   useEffect(() => {
     if (!authToken) return
     fetch('/api/cast', { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.ok ? r.json() : { cast: [] })
       .then(({ cast }) => setSavedCast((cast as CastCharacterRow[]).filter(c => !c.is_self)))
+      .catch(() => {})
+    fetch('/api/wardrobe', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(({ items }) => setWardrobeItems(items ?? []))
       .catch(() => {})
   }, [authToken])
 
@@ -266,6 +290,7 @@ export function YearnShaper({
       participant_mode_override: mode !== defaultMode ? mode : undefined,
       voyeur_context:            voyeurContext,
       alone_context:             aloneContext,
+      outfit:                    outfit.trim() || undefined,
     })
   }
 
@@ -636,6 +661,36 @@ export function YearnShaper({
             value={specificDetail}
             onChange={e => setSpecificDetail(e.target.value)}
             placeholder="anywhere specific? (the hotel from last year, his apartment…)"
+            className="w-full bg-transparent border-b border-gray-900/12 focus:border-gray-500 outline-none text-xs text-gray-700 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+          />
+        </div>
+
+        {/* 5b — Outfit */}
+        <div className="space-y-2">
+          <p className="text-gray-900/50 text-xs tracking-widest uppercase">What are you wearing?</p>
+          {wardrobeItems.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {wardrobeItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setOutfit(item.description)}
+                  className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
+                    outfit === item.description
+                      ? 'border-gray-900 text-gray-900 bg-gray-50'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                  }`}
+                >
+                  {item.description}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            type="text"
+            maxLength={80}
+            value={outfit}
+            onChange={e => setOutfit(e.target.value)}
+            placeholder={outfitPlaceholder}
             className="w-full bg-transparent border-b border-gray-900/12 focus:border-gray-500 outline-none text-xs text-gray-700 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
           />
         </div>

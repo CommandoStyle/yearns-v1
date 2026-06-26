@@ -34,6 +34,13 @@ const BUILD_OPTIONS = [
   'slender', 'curvy', 'athletic', 'soft',
 ]
 
+// PROVISIONAL — flagged for trainer validation before treating as final.
+// Mirror any changes here in CastMemberForm.tsx if that file adds ethnicity chips.
+const ETHNICITY_OPTIONS = [
+  'Black', 'East Asian', 'South Asian', 'Southeast Asian',
+  'Latina', 'Middle Eastern', 'Mixed', 'White',
+]
+
 // ─── Chip selector ────────────────────────────────────────────────────────────
 
 function ChipSelector({
@@ -88,7 +95,7 @@ export function SelfDescriptionFlow({
 }: SelfDescriptionFlowProps) {
   // Level 1: have they opted in?
   const [level, setLevel] = useState<0 | 1 | 2 | 3>(
-    initial.hair_colour || initial.eye_colour || initial.build ? 2 : 0
+    initial.hair_colour || initial.eye_colour || initial.build || initial.ethnicity ? 2 : 0
   )
 
   // Level 2 fields
@@ -96,6 +103,9 @@ export function SelfDescriptionFlow({
   const [eyeColour,  setEyeColour]  = useState<string | null>(initial.eye_colour  ?? null)
   const [build,      setBuild]      = useState<string | null>(initial.build        ?? null)
   const [buildFree,  setBuildFree]  = useState<string>('')  // free-text override for build
+  // PROVISIONAL vocabulary — see file header and cast.ts for validation flag
+  const [ethnicity,  setEthnicity]  = useState<string | null>(initial.ethnicity   ?? null)
+  const [ethnicityFree, setEthnicityFree] = useState<string>('')
 
   // Level 3 fields
   const [height,     setHeight]     = useState<string>(initial.height            ?? '')
@@ -113,13 +123,15 @@ export function SelfDescriptionFlow({
     setSaving(true)
     setError(false)
 
-    const effectiveBuild = buildFree.trim() || build
+    const effectiveBuild    = buildFree.trim() || build
+    const effectiveEthnicity = ethnicityFree.trim() || ethnicity
 
     const fields: Partial<SelfDescriptionFields> = {
-      hair_colour:       hairColour       || undefined,
-      eye_colour:        eyeColour        || undefined,
-      build:             effectiveBuild   || undefined,
-      height:            height.trim()    || undefined,
+      hair_colour:       hairColour            || undefined,
+      eye_colour:        eyeColour             || undefined,
+      build:             effectiveBuild        || undefined,
+      ethnicity:         effectiveEthnicity    || undefined,
+      height:            height.trim()         || undefined,
       additional_detail: additional.slice(0, 300).trim() || undefined,
     }
 
@@ -214,6 +226,21 @@ export function SelfDescriptionFlow({
               placeholder="or describe it your way"
               value={buildFree}
               onChange={e => setBuildFree(e.target.value)}
+              className="mt-1 w-full text-sm border-b border-gray-900/15 bg-transparent py-1 text-gray-700 placeholder-gray-400/60 outline-none focus:border-gray-900/30"
+            />
+          )}
+        </div>
+
+        {/* Ethnicity — PROVISIONAL vocabulary, flagged for trainer validation */}
+        <div className="space-y-2">
+          <p className="text-gray-900/50 text-xs tracking-widest uppercase">Ethnicity</p>
+          <ChipSelector options={ETHNICITY_OPTIONS} value={ethnicity} onChange={v => { setEthnicity(v); if (v) setEthnicityFree('') }} />
+          {ethnicity === null && (
+            <input
+              type="text"
+              placeholder="or describe it your way"
+              value={ethnicityFree}
+              onChange={e => setEthnicityFree(e.target.value)}
               className="mt-1 w-full text-sm border-b border-gray-900/15 bg-transparent py-1 text-gray-700 placeholder-gray-400/60 outline-none focus:border-gray-900/30"
             />
           )}

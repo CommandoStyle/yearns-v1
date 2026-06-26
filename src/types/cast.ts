@@ -15,6 +15,8 @@ export interface CastCharacterRow {
   build:             string | null
   height:            string | null
   additional_detail: string | null
+  ethnicity?:        string | null
+  erogenous_notes?:  string | null  // schema-only — no UI or prompt wiring until UX is designed
   created_at:        string
   updated_at:        string
 }
@@ -22,5 +24,5 @@ export interface CastCharacterRow {
 // Subset used by buildPrompt() for self-description injection.
 export type SelfDescriptionFields = Pick<
   CastCharacterRow,
-  'hair_colour' | 'eye_colour' | 'build' | 'height' | 'additional_detail'
+  'hair_colour' | 'eye_colour' | 'build' | 'height' | 'additional_detail' | 'ethnicity'
 >

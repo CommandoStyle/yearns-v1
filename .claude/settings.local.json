@@ -45,7 +45,8 @@
       "Bash(pnpm tsc *)",
       "Bash(pnpm build *)",
       "Bash(git add *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

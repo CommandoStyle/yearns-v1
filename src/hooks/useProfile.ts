@@ -11,6 +11,9 @@ export interface ProfilePatch {
   age_band?:               string
   prose_rhythm?:           string
   last_explicitness_used?: number
+  last_mode_used?:         string
+  last_length_mins_used?:  number
+  country?:                string
   onboarding_complete?:    boolean
 }
 

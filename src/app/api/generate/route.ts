@@ -93,6 +93,7 @@ interface GenerateBody {
   participant_mode_override?: import('@/lib/prompt-engine').ParticipantMode
   voyeur_context?: import('@/lib/prompt-engine').VoyeurContext
   alone_context?: import('@/lib/prompt-engine').AloneContext
+  outfit?: string
 }
 
 function validateBody(body: unknown): GenerateBody | null {
@@ -123,6 +124,7 @@ function validateBody(body: unknown): GenerateBody | null {
     participant_mode_override: b.participant_mode_override as import('@/lib/prompt-engine').ParticipantMode | undefined,
     voyeur_context:            isVoyeurContext(b.voyeur_context) ? b.voyeur_context : undefined,
     alone_context:             isAloneContext(b.alone_context) ? b.alone_context : undefined,
+    outfit:                    typeof b.outfit === 'string' ? b.outfit.slice(0, 120) : undefined,
   }
 }
 
@@ -255,6 +257,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     voyeur_context:            body.voyeur_context,
     alone_context:             body.alone_context,
     self_description:          selfCastResult.data ?? undefined,
+    outfit:                    body.outfit,
   }
 
   // Classify character roles for logging — log category only, never free-text content

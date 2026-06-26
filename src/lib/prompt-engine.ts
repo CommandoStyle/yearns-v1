@@ -58,6 +58,7 @@ export interface DesireProfile {
   language?: SupportedLanguage
   age_band?: import('@/lib/age-registers').AgeBand   // optional life-stage register calibration
   prose_rhythm?: import('@/lib/prose-quality-standard').ProseRhythm  // optional sentence rhythm preference
+  country?: string
 }
 
 export type SettingType =
@@ -120,6 +121,7 @@ export interface GenerationRequest {
   voyeur_context?: VoyeurContext        // present only when mode is voyeur
   alone_context?: AloneContext          // present only when mode is alone
   self_description?: SelfDescriptionFields  // from cast_characters WHERE is_self=true; optional
+  outfit?: string                       // what the reader is wearing — optional, from wardrobe or free text
 }
 
 export interface BuiltPrompt {
@@ -229,6 +231,7 @@ function buildSelfDescriptionClause(self: SelfDescriptionFields | null | undefin
   if (!self) return ''
   const details: string[] = []
   if (self.hair_colour) details.push(`hair: ${self.hair_colour}`)
+  if (self.ethnicity)   details.push(`ethnicity: ${self.ethnicity}`)
   if (self.eye_colour)  details.push(`eyes: ${self.eye_colour}`)
   if (self.build)       details.push(`build: ${self.build}`)
   if (self.height)      details.push(`height: ${self.height}`)
@@ -260,6 +263,7 @@ export function buildPrompt(req: GenerationRequest): BuiltPrompt {
     voyeur_context,
     alone_context,
     self_description,
+    outfit,
   } = req
 
   const lang = req.language ?? profile.language ?? 'en'
@@ -292,7 +296,12 @@ ${profile.hard_limits.map(l => `— ${l}`).join('\n')}
     `.trim())
   }
 
-  // 3. Explicitness calibration
+  // 3. Cultural context (country-based flavor, light touch)
+  if (profile.country) {
+    systemParts.push(`CULTURAL CONTEXT: This reader is based in ${profile.country}. Where natural, let small details reflect this — local idiom, a recognisable brand or place-type, the texture of everyday life there — without turning the story into a travelogue or over-explaining the setting. This is a light touch, not a requirement to mention the country explicitly. Most details should remain universally legible; use this only for the occasional grounding specific.`)
+  }
+
+  // 4. Explicitness calibration
   systemParts.push(`
 EXPLICITNESS LEVEL: ${explicitness}/4
 ${EXPLICITNESS_GUIDANCE[explicitness]}
@@ -382,6 +391,12 @@ Do not announce it — open in the middle of it, already happening.
   narrativeParts.push(`
 SETTING: ${SETTING_ATMOSPHERE[setting]}${specific_detail ? `\nSpecific detail to weave in naturally: "${specific_detail}" — incorporate this as lived texture, not a fact inserted out of context.` : ''}
   `.trim())
+
+  // C1. Outfit — what she's wearing (optional, from wardrobe or free text)
+  if (outfit) {
+    narrativeParts.push(`WHAT SHE'S WEARING: ${outfit}
+Let this inform the scene specifically and physically — texture, how it moves or doesn't, what removing it (if relevant) feels like or implies.`)
+  }
 
   // D. Protagonist / watcher / alone framing
   const displayName = profile.display_name?.trim() || null

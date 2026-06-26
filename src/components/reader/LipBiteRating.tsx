@@ -56,15 +56,27 @@ function getQuestionForSession(sessionCount: number): ProfileQuestion {
 interface LipBiteRatingProps {
   authToken:    string | null
   sessionCount: number
+  outfit?:      string
   onDismiss:    () => void
 }
 
 const RATING_LABELS = ['', '✦', '✦✦', '✦✦✦', '✦✦✦✦']
 
-export function LipBiteRating({ authToken, sessionCount, onDismiss }: LipBiteRatingProps) {
-  const [rating, setRating]       = useState<number | null>(null)
-  const [submitted, setSubmitted] = useState(false)
+export function LipBiteRating({ authToken, sessionCount, outfit, onDismiss }: LipBiteRatingProps) {
+  const [rating, setRating]             = useState<number | null>(null)
+  const [submitted, setSubmitted]       = useState(false)
   const [hoveredRating, setHoveredRating] = useState<number | null>(null)
+  const [outfitSaved, setOutfitSaved]   = useState(false)
+
+  function handleSaveOutfit() {
+    if (!authToken || !outfit) return
+    fetch('/api/wardrobe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ description: outfit }),
+      keepalive: true,
+    }).then(r => { if (r.ok) setOutfitSaved(true) }).catch(() => {})
+  }
 
   const question = getQuestionForSession(sessionCount)
 
@@ -164,6 +176,22 @@ export function LipBiteRating({ authToken, sessionCount, onDismiss }: LipBiteRat
 
           {submitted && (
             <p className="text-center text-gray-400 text-sm">Thank you</p>
+          )}
+
+          {/* Save outfit prompt — shown after rating, only if outfit was set */}
+          {rating !== null && outfit && !outfitSaved && (
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <p className="text-gray-500 text-sm">Save this outfit for next time?</p>
+              <button
+                onClick={handleSaveOutfit}
+                className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 hover:border-gray-400 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          )}
+          {outfitSaved && (
+            <p className="text-gray-400 text-xs text-right">Saved</p>
           )}
 
           {/* Dismiss if no rating yet */}

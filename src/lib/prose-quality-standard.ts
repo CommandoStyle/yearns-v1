@@ -182,6 +182,13 @@ would ever be the same. End in a detail. End in a sensation. End mid-thought,
 if that's honest.
 `.trim()
 
+// ─── Part 5 — Wardrobe default-avoidance ─────────────────────────────────────
+
+const PART5_WARDROBE = `
+WARDROBE DEFAULT-AVOIDANCE:
+Do not default to genre-coded or glamorous clothing descriptions (silk dresses, designer labels, evening wear) when no outfit is specified. If the story requires clothing detail and none was given, choose something ordinary and specific — running shoes and leggings, a worn band t-shirt, the robe she wears on Sunday mornings, jeans and a jumper. Specificity beats glamour. Generic elegance is a tic.
+`.trim()
+
 // ─── Combined export ──────────────────────────────────────────────────────────
 
 export const PROSE_QUALITY_STANDARD = [
@@ -189,6 +196,7 @@ export const PROSE_QUALITY_STANDARD = [
   PART2_ECONOMY,
   PART3_REGISTER,
   PART4_RETAINED,
+  PART5_WARDROBE,
 ].join('\n\n')
 
 // ─── Prose rhythm guidance ────────────────────────────────────────────────────

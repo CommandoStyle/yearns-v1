@@ -17,25 +17,36 @@ const AGE_BANDS: { key: AgeBand; label: string }[] = [
 
 const QUESTIONS = [
   {
-    section: 'Your mood',
-    sub:     'When and how you read shapes the stories we write.',
-    id:      'reading_mood',
-    q:       'When do you tend to read Yearns?',
-    options: ['Wind-down before sleep', 'Stolen moment mid-day', 'Whenever the mood hits'],
+    section:  'Your mood',
+    sub:      'When and how you read shapes the stories we write.',
+    id:       'reading_mood',
+    q:        'When do you tend to read Yearns?',
+    options:  ['Wind-down before sleep', 'Stolen moment mid-day', 'Whenever the mood hits'],
+    freeText: false,
   },
   {
-    section: 'Your life',
-    sub:     'Context that makes stories resonate more closely.',
-    id:      'relationship_context',
-    q:       "What's your relationship situation right now?",
-    options: ['Single', 'In a relationship', "It's complicated", 'Prefer not to say'],
+    section:  'Your life',
+    sub:      'Context that makes stories resonate more closely.',
+    id:       'relationship_context',
+    q:        "What's your relationship situation right now?",
+    options:  ['Single', 'In a relationship', "It's complicated", 'Prefer not to say'],
+    freeText: false,
   },
   {
-    section: 'Your perspective',
-    sub:     'How you like to experience a story.',
-    id:      'pov_preference',
-    q:       'Do you prefer being the protagonist, or watching from outside?',
-    options: ["I'm in the story", "I'm watching", 'Depends on my mood'],
+    section:  'Your perspective',
+    sub:      'How you like to experience a story.',
+    id:       'pov_preference',
+    q:        'Do you prefer being the protagonist, or watching from outside?',
+    options:  ["I'm in the story", "I'm watching", 'Depends on my mood'],
+    freeText: false,
+  },
+  {
+    section:  'Where you are',
+    sub:      'Helps us add little details that feel familiar.',
+    id:       'country',
+    q:        'Where in the world are you?',
+    options:  [],
+    freeText: true,
   },
 ]
 
@@ -44,10 +55,11 @@ export default function BuildProfilePage() {
   const { session } = useAuth()
   const authToken   = session?.access_token ?? null
 
-  const [answers,  setAnswers]  = useState<Record<string, string>>({})
-  const [saved,    setSaved]    = useState<Record<string, boolean>>({})
-  const [ageBand,  setAgeBand]  = useState<AgeBand | null>(null)
-  const [ageStage, setAgeStage] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [answers,      setAnswers]      = useState<Record<string, string>>({})
+  const [saved,        setSaved]        = useState<Record<string, boolean>>({})
+  const [ageBand,      setAgeBand]      = useState<AgeBand | null>(null)
+  const [ageStage,     setAgeStage]     = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [freeTextDraft, setFreeTextDraft] = useState<Record<string, string>>({})
 
   useEffect(() => {
     async function loadAgeBand() {
@@ -100,6 +112,30 @@ export default function BuildProfilePage() {
     setTimeout(() => setSaved(prev => ({ ...prev, [questionId]: false })), 1200)
   }
 
+  function handleFreeTextCommit(questionId: string) {
+    const value = (freeTextDraft[questionId] ?? '').trim()
+    if (!value) return
+    setAnswers(prev => ({ ...prev, [questionId]: value }))
+    if (authToken) {
+      // country is a profile field — PATCH it directly
+      if (questionId === 'country') {
+        fetch('/api/profile', {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body:    JSON.stringify({ country: value }),
+        }).catch(() => {})
+      }
+      fetch('/api/profile/signal', {
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body:     JSON.stringify({ event: 'profile_question_answered', data: { question_id: questionId, answer: value }, timestamp: Date.now() }),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    setSaved(prev => ({ ...prev, [questionId]: true }))
+    setTimeout(() => setSaved(prev => ({ ...prev, [questionId]: false })), 1200)
+  }
+
   return (
     <div className="min-h-screen px-6 py-16">
       <div className="max-w-sm mx-auto space-y-12">
@@ -119,7 +155,7 @@ export default function BuildProfilePage() {
         </p>
 
         {/* Profile questions */}
-        {QUESTIONS.map(({ section, sub, id, q, options }) => (
+        {QUESTIONS.map(({ section, sub, id, q, options, freeText }) => (
           <div key={id} className="space-y-4 pt-6 border-t border-gray-900/8">
             <div>
               <h2 className="text-gray-900/70 text-sm font-medium">{section}</h2>
@@ -127,19 +163,33 @@ export default function BuildProfilePage() {
             </div>
             <div className="space-y-2">
               <p className="text-gray-700 text-sm">{q}</p>
-              <div className="flex flex-wrap gap-2">
-                {options.map(opt => (
-                  <button
-                    key={opt}
-                    onClick={() => handleAnswer(id, opt)}
-                    className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
-                      answers[id] === opt
-                        ? 'border-gray-900 text-gray-900 bg-gray-50'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-400'
-                    }`}
-                  >{opt}</button>
-                ))}
-              </div>
+              {freeText ? (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={freeTextDraft[id] ?? answers[id] ?? ''}
+                    onChange={e => setFreeTextDraft(prev => ({ ...prev, [id]: e.target.value }))}
+                    onBlur={() => handleFreeTextCommit(id)}
+                    onKeyDown={e => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur() } }}
+                    placeholder="e.g. United Kingdom, Australia, France…"
+                    className="flex-1 bg-transparent border-b border-gray-900/12 focus:border-gray-500 outline-none text-sm text-gray-700 placeholder:text-gray-300 py-1.5 transition-colors duration-200"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {options.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => handleAnswer(id, opt)}
+                      className={`px-3 py-1.5 text-xs border rounded-sm transition-colors duration-200 ${
+                        answers[id] === opt
+                          ? 'border-gray-900 text-gray-900 bg-gray-50'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                      }`}
+                    >{opt}</button>
+                  ))}
+                </div>
+              )}
               {saved[id] && <p className="text-gray-300 text-xs">Saved</p>}
             </div>
           </div>
