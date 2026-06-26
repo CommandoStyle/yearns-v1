@@ -380,37 +380,6 @@ export default function SettingsPage() {
         {langStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
-      {/* Age band */}
-      <section className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">You</h2>
-          <p className="text-gray-900/40 text-sm">
-            Optional. Helps shape the tone and perspective of your Yearns.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {AGE_BANDS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => saveAgeBand(key)}
-              className={`py-3 px-4 text-left border transition-all duration-200 ${
-                ageBand === key
-                  ? 'border-gray-600/70 bg-gray-600/5'
-                  : 'border-gray-900/12 hover:border-gray-900/25'
-              }`}
-            >
-              <p className={`font-serif text-sm ${ageBand === key ? 'text-gray-600' : 'text-gray-900'}`}>
-                {label}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        {ageStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
-        {ageStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
-      </section>
-
       {/* Prose rhythm */}
       <section className="space-y-5">
         <div className="space-y-1">
@@ -443,15 +412,26 @@ export default function SettingsPage() {
         {rhythmStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
-      {/* Build your profile */}
+      {/* You (profile builder) */}
       <section className="pt-6 border-t border-gray-900/8">
         <Link
           href="/profile/build"
           className="text-gray-900/45 text-xs tracking-widest uppercase hover:text-gray-900/70 transition-colors"
         >
-          Build your profile →
+          You →
         </Link>
-        <p className="mt-1 text-gray-900/30 text-sm">Tell us more about your yearnings — shapes every story.</p>
+        <p className="mt-1 text-gray-900/30 text-sm">Tell us more about you — shapes every story.</p>
+      </section>
+
+      {/* Your cast */}
+      <section className="pt-6 border-t border-gray-900/8">
+        <Link
+          href="/profile/cast"
+          className="text-gray-900/45 text-xs tracking-widest uppercase hover:text-gray-900/70 transition-colors"
+        >
+          Your cast →
+        </Link>
+        <p className="mt-1 text-gray-900/30 text-sm">Build a recurring cast for your Yearns.</p>
       </section>
 
       {/* Sign out */}

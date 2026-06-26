@@ -9,7 +9,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useCast } from '@/hooks/useCast'
-import { SelfDescriptionFlow } from '@/components/cast/SelfDescriptionFlow'
 import { CastMemberForm } from '@/components/cast/CastMemberForm'
 import type { CastCharacterRow } from '@/types/cast'
 
@@ -18,10 +17,10 @@ const CAST_SOFT_CAP = 8
 export default function CastPage() {
   const { session }                   = useAuth()
   const authToken                     = session?.access_token ?? null
-  const { cast, selfRow, loading, load, save, update, remove } = useCast()
+  const { cast, loading, load, save, update, remove } = useCast()
 
   const router                         = useRouter()
-  const [view, setView]               = useState<'list' | 'self' | 'add' | 'edit'>('list')
+  const [view, setView]               = useState<'list' | 'add' | 'edit'>('list')
   const [editing, setEditing]         = useState<CastCharacterRow | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
@@ -64,36 +63,6 @@ export default function CastPage() {
           ✕
         </button>
       </div>
-
-        {/* Self entry — visually distinct */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-900/40 text-xs tracking-widest uppercase">You</p>
-            <button
-              onClick={() => setView('self')}
-              className="text-gray-500 text-xs hover:text-gray-800 transition-colors"
-            >
-              {selfRow && (selfRow.hair_colour || selfRow.build || selfRow.eye_colour)
-                ? 'Edit your profile'
-                : 'Add your profile'}
-            </button>
-          </div>
-          {selfRow && (selfRow.hair_colour || selfRow.build || selfRow.eye_colour) ? (
-            <div className="border border-gray-900/8 px-4 py-3 text-sm text-gray-600">
-              {[selfRow.hair_colour, selfRow.eye_colour, selfRow.build]
-                .filter(Boolean)
-                .join(' · ')}
-              {selfRow.height && <span className="text-gray-400"> · {selfRow.height}</span>}
-            </div>
-          ) : (
-            <button
-              onClick={() => setView('self')}
-              className="w-full border border-dashed border-gray-900/12 px-4 py-4 text-left text-sm text-gray-400/70 hover:border-gray-900/25 hover:text-gray-500 transition-all"
-            >
-              Add a little about yourself — optional, if you'd like
-            </button>
-          )}
-        </div>
 
         {/* Non-self cast */}
         <div className="space-y-3">
@@ -182,35 +151,7 @@ export default function CastPage() {
     )
   }
 
-  // ── Self-description flow ──────────────────────────────────────────────────
 
-  if (view === 'self') {
-    return (
-      <div className="max-w-lg mx-auto px-6 py-12 space-y-8">
-        <button
-          onClick={() => setView('list')}
-          className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
-        >
-          ← back
-        </button>
-        <SelfDescriptionFlow
-          initial={{
-            hair_colour:       selfRow?.hair_colour       ?? undefined,
-            eye_colour:        selfRow?.eye_colour         ?? undefined,
-            build:             selfRow?.build              ?? undefined,
-            height:            selfRow?.height             ?? undefined,
-            additional_detail: selfRow?.additional_detail  ?? undefined,
-          }}
-          authToken={authToken}
-          onSaved={() => {
-            if (authToken) load(authToken)
-            setView('list')
-          }}
-          onDismissed={() => setView('list')}
-        />
-      </div>
-    )
-  }
 
   // ── Add / edit non-self member ─────────────────────────────────────────────
 
