@@ -19,12 +19,12 @@ const PROSE_RHYTHM_OPTIONS: { key: ProseRhythm; label: string; sub: string }[] =
 ]
 
 const AGE_BANDS: { key: AgeBand; label: string }[] = [
-  { key: '18_24', label: 'My 20s' },
-  { key: '25_34', label: 'Late 20s / 30s' },
-  { key: '35_44', label: 'Late 30s / 40s' },
-  { key: '45_54', label: 'Late 40s / 50s' },
-  { key: '55_64', label: 'Late 50s / 60s' },
-  { key: '65_plus', label: '65 and beyond' },
+  { key: '18_24',   label: '18–24'  },
+  { key: '25_34',   label: '25–34'  },
+  { key: '35_44',   label: '35–44'  },
+  { key: '45_54',   label: '45–54'  },
+  { key: '55_64',   label: '55–64'  },
+  { key: '65_plus', label: '65+'    },
 ]
 
 const LANGUAGES: { key: SupportedLanguage; label: string; native: string }[] = [
@@ -380,12 +380,12 @@ export default function SettingsPage() {
         {langStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
       </section>
 
-      {/* Which decade are you writing from */}
+      {/* Age band */}
       <section className="space-y-5">
         <div className="space-y-1">
-          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">Which decade are you writing from?</h2>
+          <h2 className="text-gray-900/70 text-xs tracking-widest uppercase">You</h2>
           <p className="text-gray-900/40 text-sm">
-            Optional. Helps shape the tone and perspective of your Yearns. You can skip this.
+            Optional. Helps shape the tone and perspective of your Yearns.
           </p>
         </div>
 
@@ -441,17 +441,6 @@ export default function SettingsPage() {
 
         {rhythmStage === 'done'  && <p className="text-gray-900/50 text-sm">Saved.</p>}
         {rhythmStage === 'error' && <p className="text-gray-900/45 text-sm border border-gray-900/10 px-4 py-3">Could not save. Try again.</p>}
-      </section>
-
-      {/* Cast */}
-      <section className="pt-6 border-t border-gray-900/8">
-        <Link
-          href="/profile/cast"
-          className="text-gray-900/45 text-xs tracking-widest uppercase hover:text-gray-900/70 transition-colors"
-        >
-          Your cast →
-        </Link>
-        <p className="mt-1 text-gray-900/30 text-sm">Build a recurring cast for your Yearns.</p>
       </section>
 
       {/* Build your profile */}
